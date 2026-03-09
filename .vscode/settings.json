@@ -1,8 +1,7 @@
 {
-    "git.branchProtection": [
-        "main"
-    ],
-    "files.autoSave": "afterDelay",
-    "git.branchProtectionPrompt": "alwaysCommitToNewBranch",
-    "git.enableSmartCommit": true
-} 
+  "git.branchProtection": ["main"],
+  "files.autoSave": "afterDelay",
+  "git.branchProtectionPrompt": "alwaysCommitToNewBranch",
+  "git.enableSmartCommit": true,
+  "python.linting.pylintArgs": ["--extension-pkg-whitelist=pygame"]
+}
