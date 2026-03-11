@@ -1,5 +1,6 @@
 import pygame
-from settings import SZELESSEG, MAGASSAG, Palya
+from settings import SZELESSEG, MAGASSAG
+from map import Palya
 
 # pylint: disable=no-member
 
