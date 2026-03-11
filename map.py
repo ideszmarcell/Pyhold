@@ -1,4 +1,4 @@
-from typing import Tuple
+
 import pygame
 from settings import (
     RACS_MERET,
@@ -18,11 +18,11 @@ class Palya:
         self.sorok: int = len(MAZE)
         self.adatok: list[list[int]] = [row[:] for row in MAZE]
 
-    def koordinata_szamitas(self, pos: Tuple[int, int]) -> Tuple[int, int]:
+    def koordinata_szamitas(self, pos: tuple[int, int]) -> tuple[int, int]:
         x, y = pos
         return x // RACS_MERET, y // RACS_MERET
 
-    def cella_modositas(self, pos: Tuple[int, int]) -> None:
+    def cella_modositas(self, pos: tuple[int, int]) -> None:
         gx, gy = self.koordinata_szamitas(pos)
         if 0 <= gy < self.sorok and 0 <= gx < self.oszlopok:
             self.adatok[gy][gx] = 1 if self.adatok[gy][gx] == 0 else 0
