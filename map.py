@@ -1,6 +1,7 @@
 
 import pygame
 from settings import (
+    KEK,
     RACS_MERET,
     FEKETE,
     SZURKE,
@@ -40,9 +41,13 @@ class Palya:
                 if self.adatok[r][c] == 1:  # Fal
                     szin = FEKETE
                 elif self.adatok[r][c] == 0:  # Üres / út (kék)
-                    szin = FEHER
+                    szin = FEKETE
                 elif self.adatok[r][c] == 2:  # Torony (zöld)
                     szin = ZOLD
+                elif self.adatok[r][c] == 3:  # Speciális épület (kék)
+                    szin = KEK
+                elif self.adatok[r][c] == 4:  # Kezdőpont (fehér)
+                    szin = FEHER
 
                 rect = (
                     c * RACS_MERET + 1,
