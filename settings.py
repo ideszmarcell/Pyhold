@@ -1,6 +1,6 @@
 from typing import Tuple
 import pygame
-
+from src.entities.enemy import PATH, Enemy
 # pylint: disable=no-member
 
 SZELESSEG, MAGASSAG = 800, 700
