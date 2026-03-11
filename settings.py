@@ -10,11 +10,14 @@ FEKETE = (20, 20, 25)
 SZURKE = (40, 40, 50)
 ZOLD = (34, 139, 34)
 
+
 class Palya:
     def __init__(self) -> None:
         self.oszlopok: int = SZELESSEG // RACS_MERET
         self.sorok: int = MAGASSAG // RACS_MERET
-        self.adatok: list[list[int]] = [[0 for _ in range(self.oszlopok)] for _ in range(self.sorok)]
+        self.adatok: list[list[int]] = [
+            [0 for _ in range(self.oszlopok)] for _ in range(self.sorok)
+        ]
 
     def koordinata_szamitas(self, pos: Tuple[int, int]) -> Tuple[int, int]:
         x, y = pos
@@ -47,33 +50,3 @@ class Palya:
         felulet.fill(FEKETE)
         self._rajzol_epuletek(felulet)
         self._rajzol_vonalak(felulet)
-
-class Jatek:
-    def __init__(self) -> None:
-        pygame.init()
-        self.ablak: pygame.Surface = pygame.display.set_mode((SZELESSEG, MAGASSAG))
-        pygame.display.set_caption("Outhold Pálya Rendszer")
-        self.ora: pygame.time.Clock = pygame.time.Clock()
-        self.palya: Palya = Palya()
-        self.futo: bool = True
-
-    def esemenyek(self) -> None:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.futo = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    self.palya.cella_modositas(event.pos)
-
-    def futtat(self) -> None:
-        while self.futo:
-            self.esemenyek()
-            self.palya.rajzol(self.ablak)
-            pygame.display.update()
-            self.ora.tick(60)
-        pygame.quit()
-        sys.exit()
-
-if __name__ == "__main__":
-    app = Jatek()
-    app.futtat()
