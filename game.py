@@ -1,9 +1,10 @@
 import pygame
 from settings import SZELESSEG, MAGASSAG
 from map import Palya
+# Importáljuk az ellenséget a mappaszerkezeted alapján:
+from src.entities.enemy import Enemy
 
 # pylint: disable=no-member
-
 
 class Game:
     """Főbb játék logika osztály"""
@@ -13,8 +14,17 @@ class Game:
         self.ablak: pygame.Surface = pygame.display.set_mode((SZELESSEG, MAGASSAG))
         pygame.display.set_caption("Outhold Pálya Rendszer")
         self.ora: pygame.time.Clock = pygame.time.Clock()
+        
         self.palya: Palya = Palya()
         self.futo: bool = True
+        
+        # --- ÚJ RÉSZ: Ellenségek és útvonal inicializálása ---
+        self.utvonal = self.palya.kinyer_utvonal()
+        self.ellensegek = []
+        
+        # Ha találtunk útvonalat, létrehozunk egy teszt ellenséget
+        if self.utvonal:
+            self.ellensegek.append(Enemy(self.utvonal))
 
     def esemenyek(self) -> None:
         """Kezeli a felhasználó eseményeit"""
@@ -28,6 +38,16 @@ class Game:
     def rajzol(self) -> None:
         """Képernyő frissítése"""
         self.palya.rajzol(self.ablak)
+        
+        # --- ÚJ RÉSZ: Ellenségek frissítése és rajzolása ---
+        for ellenseg in self.ellensegek:
+            ellenseg.update()
+            ellenseg.draw(self.ablak)
+            
+            # (Opcionális) Ha végigért a pályán, törölhetjük a listából
+            if ellenseg.reached_end:
+                self.ellensegek.remove(ellenseg)
+
         pygame.display.update()
 
     def run(self) -> None:
