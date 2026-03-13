@@ -1,72 +1,83 @@
 import pygame
-from settings import SZELESSEG, MAGASSAG
+from settings import SZELESSEG, MAGASSAG, MAZE # Itt a MAZE-t használd a pályához
 from map import Palya
-from src.entities.enemy import Enemy
-from gazdasag import Gazdasag
+# Az új elérési út a mappaszerkezeted alapján:
+from src.entities.enemy import Enemy 
 from button import Button
 
-# pylint: disable=no-member
-
 class Game:
-    """Főbb játék logika osztály"""
-
     def __init__(self) -> None:
         pygame.init()
-        self.ablak: pygame.Surface = pygame.display.set_mode((SZELESSEG, MAGASSAG))
-        pygame.display.set_caption("Outhold Pálya Rendszer")
-        self.ora: pygame.time.Clock = pygame.time.Clock()
+        self.ablak = pygame.display.set_mode((SZELESSEG, MAGASSAG))
+        self.ora = pygame.time.Clock()
+        self.palya = Palya()
         
-        self.palya: Palya = Palya()
-        self.futo: bool = True
+        # A gomb helye és mérete
+        self.hullam_gomb = Button(SZELESSEG - 190, 10, 180, 45)
         
-        self.gazdasag: Gazdasag = Gazdasag()
-        self.indito_gomb = Button(SZELESSEG - 200, 10, 180, 40, "HULLÁM INDÍTÁSA")
-        
+        self.futo = True
         self.utvonal = self.palya.kinyer_utvonal()
         self.ellensegek = []
-        
-        if self.utvonal:
-            self.ellensegek.append(Enemy(self.utvonal))
+        self.hullam_szam = 0
+        self.maradek_ellenseg = 0
+        self.utolso_spawn = 0
+        self.hullam_fut = False
+
+    def indit_hullam(self):
+        if not self.hullam_fut and len(self.ellensegek) == 0:
+            self.hullam_szam += 1
+            self.maradek_ellenseg = 5 + (self.hullam_szam * 2)
+            self.hullam_fut = True
 
     def esemenyek(self) -> None:
-        """Kezeli a felhasználó eseményeit"""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.futo = False
-                
-            if self.indito_gomb.handle_event(event):
-                if self.utvonal:
-                    self.ellensegek.append(Enemy(self.utvonal))
+            
+            if self.hullam_gomb.handle_event(event):
+                self.indit_hullam()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    if not self.indito_gomb.hovered:
-                        if self.gazdasag.vasarlas(100):
-                            self.palya.cella_modositas(event.pos)
+                if event.button == 1 and not self.hullam_gomb.is_hovered:
+                    self.palya.cella_modositas(event.pos)
+
+    def update(self):
+        # Ellenségek beküldése
+        if self.hullam_fut and self.maradek_ellenseg > 0:
+            most = pygame.time.get_ticks()
+            if most - self.utolso_spawn > 800:
+                if self.utvonal:
+                    self.ellensegek.append(Enemy(self.utvonal)) # Az Enemy-dnek kell az útvonal!
+                self.maradek_ellenseg -= 1
+                self.utolso_spawn = most
+        
+        # Hullám vége ellenőrzés
+        if self.maradek_ellenseg == 0 and len(self.ellensegek) == 0:
+            self.hullam_fut = False
 
     def rajzol(self) -> None:
-        """Képernyő frissítése"""
         self.palya.rajzol(self.ablak)
         
-        for ellenseg in self.ellensegek:
-            ellenseg.update()
-            ellenseg.draw(self.ablak)
-            
-            if ellenseg.reached_end:
-                self.ellensegek.remove(ellenseg)
+        for e in self.ellensegek[:]:
+            e.update() # Itt lehet, hogy kell a dt, ha a te Enemy-d azt várja!
+            e.draw(self.ablak)
+            if hasattr(e, 'reached_end') and e.reached_end:
+                self.ellensegek.remove(e)
 
-        self.gazdasag.rajzol_ui(self.ablak, 2)
-        self.indito_gomb.draw(self.ablak)
+        # Gomb feliratának kezelése
+        if self.hullam_fut:
+            szoveg = f"WAVE {self.hullam_szam} IN PROGRESS"
+            aktiv = False
+        else:
+            szoveg = f"START WAVE {self.hullam_szam + 1}"
+            aktiv = True
 
+        self.hullam_gomb.draw(self.ablak, szoveg, aktiv)
         pygame.display.update()
 
     def run(self) -> None:
-        """Főciklus futtatása"""
         while self.futo:
             self.esemenyek()
+            self.update()
             self.rajzol()
             self.ora.tick(60)
-
-    def quit(self) -> None:
-        """Játék bezárása"""
-        pygame.quit()
