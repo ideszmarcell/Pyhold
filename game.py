@@ -14,6 +14,7 @@ class Game:
         
         # A gomb helye és mérete
         self.hullam_gomb = Button(SZELESSEG - 190, 10, 180, 45)
+        self.tornya_gomb = Button(SZELESSEG - 190, 60, 180, 45)  # Tornyok gomb
         
         self.futo = True
         self.utvonal = self.palya.kinyer_utvonal()
@@ -22,6 +23,7 @@ class Game:
         self.maradek_ellenseg = 0
         self.utolso_spawn = 0
         self.hullam_fut = False
+        self.tornya_mod = False  # Tornyok módja
 
     def indit_hullam(self):
         if not self.hullam_fut and len(self.ellensegek) == 0:
@@ -36,10 +38,16 @@ class Game:
             
             if self.hullam_gomb.handle_event(event):
                 self.indit_hullam()
+            
+            if self.tornya_gomb.handle_event(event):
+                self.tornya_mod = not self.tornya_mod  # Tornyok mód ki-be kapcsolása
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1 and not self.hullam_gomb.is_hovered:
-                    self.palya.cella_modositas(event.pos)
+                if event.button == 1:
+                    # Csak akkor hat a tornyokra, ha a mód aktív és nem gombra kattintottál
+                    if self.tornya_mod and not self.hullam_gomb.is_hovered and not self.tornya_gomb.is_hovered:
+                        self.palya.afectar_tornya_blokk(event.pos)
+                        self.tornya_mod = False  # Mód kikapcsolása a használat után
 
     def update(self):
         # Ellenségek beküldése
@@ -73,6 +81,11 @@ class Game:
             aktiv = True
 
         self.hullam_gomb.draw(self.ablak, szoveg, aktiv)
+        
+        # Tornyok gomb felirata
+        tornya_szoveg = "TORNYOK BE" if self.tornya_mod else "TORNYOK KI"
+        self.tornya_gomb.draw(self.ablak, tornya_szoveg, True)
+        
         pygame.display.update()
 
     def run(self) -> None:
