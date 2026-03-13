@@ -2,7 +2,10 @@ import pygame
 from settings import SZELESSEG, MAGASSAG, MAZE # Itt a MAZE-t használd a pályához
 from map import Palya
 # Az új elérési út a mappaszerkezeted alapján:
-from src.entities.enemy import Enemy, BasicEnemy, TankEnemy, FastEnemy
+from src.entities.enemy import Enemy
+from src.entities.basic_enemy import BasicEnemy
+from src.entities.tank_enemy import TankEnemy
+from src.entities.fast_enemy import FastEnemy
 from button import Button
 
 class Game:
