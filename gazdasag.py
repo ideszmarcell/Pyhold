@@ -1,6 +1,6 @@
 # gazdasag.py
 import pygame
-from settings import *
+from settings import FEKETE, FEHER, ZOLD, NARANCS, AR_BANYASZ, AR_TORONY
 
 class Gazdasag:
     def __init__(self) -> None:
