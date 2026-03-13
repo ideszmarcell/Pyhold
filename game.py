@@ -1,8 +1,9 @@
 import pygame
 from settings import SZELESSEG, MAGASSAG
 from map import Palya
-# Importáljuk az ellenséget a mappaszerkezeted alapján:
 from src.entities.enemy import Enemy
+from gazdasag import Gazdasag
+from button import Button
 
 # pylint: disable=no-member
 
@@ -18,11 +19,12 @@ class Game:
         self.palya: Palya = Palya()
         self.futo: bool = True
         
-        # --- ÚJ RÉSZ: Ellenségek és útvonal inicializálása ---
+        self.gazdasag: Gazdasag = Gazdasag()
+        self.indito_gomb = Button(SZELESSEG - 200, 10, 180, 40, "HULLÁM INDÍTÁSA")
+        
         self.utvonal = self.palya.kinyer_utvonal()
         self.ellensegek = []
         
-        # Ha találtunk útvonalat, létrehozunk egy teszt ellenséget
         if self.utvonal:
             self.ellensegek.append(Enemy(self.utvonal))
 
@@ -31,22 +33,33 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.futo = False
+                
+            if self.indito_gomb.handle_event(event):
+                if self.utvonal:
+                    self.ellensegek.append(Enemy(self.utvonal))
+
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    self.palya.cella_modositas(event.pos)
+                    if not self.indito_gomb.hovered:
+                        if self.gazdasag.vasarlas(100):
+                            self.palya.cella_modositas(event.pos)
 
     def rajzol(self) -> None:
         """Képernyő frissítése"""
         self.palya.rajzol(self.ablak)
-        for ellenseg in self.ellensegek[:]:
+        
+        for ellenseg in self.ellensegek:
             ellenseg.update()
             ellenseg.draw(self.ablak)
             
-            # Töröljük az ellenséget, ha végigért a pályán, VAGY ha elfogyott az élete (hp <= 0)
-            if ellenseg.reached_end or ellenseg.hp <= 0:
+            if ellenseg.reached_end:
                 self.ellensegek.remove(ellenseg)
 
+        self.gazdasag.rajzol_ui(self.ablak, 2)
+        self.indito_gomb.draw(self.ablak)
+
         pygame.display.update()
+
     def run(self) -> None:
         """Főciklus futtatása"""
         while self.futo:
