@@ -2,7 +2,7 @@ import pygame
 from settings import SZELESSEG, MAGASSAG, MAZE # Itt a MAZE-t használd a pályához
 from map import Palya
 # Az új elérési út a mappaszerkezeted alapján:
-from src.entities.enemy import Enemy 
+from src.entities.enemy import Enemy, BasicEnemy, TankEnemy, FastEnemy
 from button import Button
 
 class Game:
@@ -47,7 +47,7 @@ class Game:
             most = pygame.time.get_ticks()
             if most - self.utolso_spawn > 800:
                 if self.utvonal:
-                    self.ellensegek.append(Enemy(self.utvonal)) # Az Enemy-dnek kell az útvonal!
+                    self.ellensegek.append(BasicEnemy(self.utvonal))
                 self.maradek_ellenseg -= 1
                 self.utolso_spawn = most
         
