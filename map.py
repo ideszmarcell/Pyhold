@@ -1,4 +1,3 @@
-
 import pygame
 from settings import (
     KEK,
@@ -40,20 +39,22 @@ class Palya:
                 szin = None
                 if self.adatok[r][c] == 1:  # Fal
                     szin = FEKETE
-                elif self.adatok[r][c] == 2:  # Torony (zöld)
+                elif self.adatok[r][c] == 2:  # Torony
                     szin = ZOLD
-                elif self.adatok[r][c] == 3:  # Speciális épület (kék)
+                elif self.adatok[r][c] == 3:  # Speciális épület
                     szin = KEK
-                elif self.adatok[r][c] == 6:  # ÚJ: Kezdőpont
+                elif self.adatok[r][c] == 6:  # Kezdőpont
                     szin = FEHER
-                elif self.adatok[r][c] == 5:  # ÚJ: Végpont (Bázis) - legyen mondjuk piros
+                elif self.adatok[r][c] == 5:  # Végpont (Bázis)
                     szin = (255, 50, 50)
                 else:
                     # BIZTONSÁGI HÁLÓ: Ha ismeretlen szám van a pályán, legyen rikító lila!
-                    szin = (255, 0, 255) 
+                    szin = (255, 0, 255)
 
                 # Rajzolás
-                rect = pygame.Rect(c * RACS_MERET, r * RACS_MERET, RACS_MERET, RACS_MERET)
+                rect = pygame.Rect(
+                    c * RACS_MERET, r * RACS_MERET, RACS_MERET, RACS_MERET
+                )
                 pygame.draw.rect(felulet, szin, rect)
 
                 rect = (
@@ -71,10 +72,9 @@ class Palya:
 
     def kinyer_utvonal(self) -> list[tuple[int, int]]:
         """Kikeresi a pixel-alapú útvonalat a 6-ostól az 5-ösig, figyelve a kereszteződésekre."""
-        start = None
-        end = None
-        
-        # 1. Megkeressük a kezdő (6) és végpontot (5)
+        start: tuple[int, int] | None = None
+        end: tuple[int, int] | None = None
+
         for r in range(self.sorok):
             for c in range(self.oszlopok):
                 if self.adatok[r][c] == 6:
@@ -85,12 +85,16 @@ class Palya:
         if not start or not end:
             return []
 
-        utvonal_rida = [start]
-        jelenlegi = start
-        iranyok = [(-1, 0), (1, 0), (0, -1), (0, 1)] # Fel, Le, Balra, Jobbra
+        utvonal_rida: list[tuple[int, int]] = [start]
+        jelenlegi: tuple[int, int] = start
+        iranyok: list[tuple[int, int]] = [
+            (-1, 0),
+            (1, 0),
+            (0, -1),
+            (0, 1),
+        ]  # Fel, Le, Balra, Jobbra
         jelenlegi_irany = None
 
-        # 2. Kezdeti irány meghatározása a 6-os pontból (merre van az első 0 vagy 5)
         for dr, dc in iranyok:
             nr, nc = start[0] + dr, start[1] + dc
             if 0 <= nr < self.sorok and 0 <= nc < self.oszlopok:
@@ -101,25 +105,25 @@ class Palya:
         if not jelenlegi_irany:
             return []
 
-        # 3. Végigmegyünk az úton a "mindig egyenesen, amíg lehet" szabállyal
         biztonsagi_fek = 0
         while jelenlegi != end and biztonsagi_fek < 1000:
             biztonsagi_fek += 1
             dr, dc = jelenlegi_irany
             elore_r, elore_c = jelenlegi[0] + dr, jelenlegi[1] + dc
 
-            # Ha tudunk egyenesen menni (út vagy cél), akkor arra megyünk
-            if (0 <= elore_r < self.sorok and 0 <= elore_c < self.oszlopok and 
-                self.adatok[elore_r][elore_c] in [0, 5]):
+            if (
+                0 <= elore_r < self.sorok
+                and 0 <= elore_c < self.oszlopok
+                and self.adatok[elore_r][elore_c] in [0, 5]
+            ):
                 jelenlegi = (elore_r, elore_c)
                 utvonal_rida.append(jelenlegi)
             else:
-                # Kanyarodás: keressünk egy új irányt (kivéve amerre jöttünk)
                 talalt = False
                 for uj_dr, uj_dc in iranyok:
-                    if uj_dr == -dr and uj_dc == -dc:  # Ne menjünk visszafelé
+                    if uj_dr == -dr and uj_dc == -dc:
                         continue
-                    
+
                     nr, nc = jelenlegi[0] + uj_dr, jelenlegi[1] + uj_dc
                     if 0 <= nr < self.sorok and 0 <= nc < self.oszlopok:
                         if self.adatok[nr][nc] in [0, 5]:
@@ -128,12 +132,12 @@ class Palya:
                             utvonal_rida.append(jelenlegi)
                             talalt = True
                             break
-                
-                if not talalt:
-                    break # Zsákutca esetén megáll
 
-        # 4. Rács koordináták konvertálása pixel koordinátákká (a cella közepe)
-        pixel_utvonal = []
+                if not talalt:
+                    break
+
+        # Rács koordináták konvertálása pixel koordinátákká (a cella közepe)
+        pixel_utvonal: list[tuple[int, int]] = []
         for r, c in utvonal_rida:
             px = c * RACS_MERET + (RACS_MERET // 2)
             py = r * RACS_MERET + (RACS_MERET // 2)
