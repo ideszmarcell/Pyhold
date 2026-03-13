@@ -38,18 +38,15 @@ class Game:
     def rajzol(self) -> None:
         """Képernyő frissítése"""
         self.palya.rajzol(self.ablak)
-        
-        # --- ÚJ RÉSZ: Ellenségek frissítése és rajzolása ---
-        for ellenseg in self.ellensegek:
+        for ellenseg in self.ellensegek[:]:
             ellenseg.update()
             ellenseg.draw(self.ablak)
             
-            # (Opcionális) Ha végigért a pályán, törölhetjük a listából
-            if ellenseg.reached_end:
+            # Töröljük az ellenséget, ha végigért a pályán, VAGY ha elfogyott az élete (hp <= 0)
+            if ellenseg.reached_end or ellenseg.hp <= 0:
                 self.ellensegek.remove(ellenseg)
 
         pygame.display.update()
-
     def run(self) -> None:
         """Főciklus futtatása"""
         while self.futo:
