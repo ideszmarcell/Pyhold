@@ -179,6 +179,10 @@ class Game:
             and self.boss_spawned_wave < self.hullam_szam
         ):
             if not self.boss_pending:
+                # Elő a boss előtt: adjon 100 pénzt
+                self.penz += 100
+                print(f"Boss előtt: +100 pénz (összesen: {self.penz})")
+
                 self.boss_pending = True
                 self.boss_spawn_ready_time = pygame.time.get_ticks() + self.boss_spawn_delay_ms
 
