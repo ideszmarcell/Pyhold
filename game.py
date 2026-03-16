@@ -7,6 +7,7 @@ from src.entities.enemy import Enemy
 from src.entities.basic_enemy import BasicEnemy
 from src.entities.tank_enemy import TankEnemy
 from src.entities.fast_enemy import FastEnemy
+from src.entities.armored_enemy import ArmoredEnemy
 from src.entities.tower import Tower
 from src.ui.tower_selector import TowerSelector
 from button import Button
@@ -41,7 +42,9 @@ class Game:
     def indit_hullam(self):
         if not self.hullam_fut and len(self.ellensegek) == 0:
             self.hullam_szam += 1
-            self.maradek_ellenseg = 5 + (self.hullam_szam * 2)
+            # Növekvő számú ellenség: 8 + (hullám * 3)
+            # Wave 1: 11, Wave 2: 14, Wave 3: 17, stb.
+            self.maradek_ellenseg = 8 + (self.hullam_szam * 3)
             self.hullam_fut = True
 
     def esemenyek(self) -> None:
@@ -97,7 +100,12 @@ class Game:
             most = pygame.time.get_ticks()
             if most - self.utolso_spawn > 800:
                 if self.utvonal:
-                    self.ellensegek.append(BasicEnemy(self.utvonal))
+                    # Az 5 féle ellenség rotációja wave-k alapján
+                    enemy_types = [BasicEnemy, FastEnemy, TankEnemy, ArmoredEnemy]
+                    enemy_index = (self.maradek_ellenseg % 5) % len(enemy_types)
+                    selected_enemy = enemy_types[enemy_index]
+                    
+                    self.ellensegek.append(selected_enemy(self.utvonal))
                 self.maradek_ellenseg -= 1
                 self.utolso_spawn = most
 
