@@ -8,6 +8,7 @@ from src.entities.basic_enemy import BasicEnemy
 from src.entities.tank_enemy import TankEnemy
 from src.entities.fast_enemy import FastEnemy
 from src.entities.armored_enemy import ArmoredEnemy
+from src.entities.boss_enemy import BossEnemy
 from src.entities.tower import Tower
 from src.ui.tower_selector import TowerSelector
 from button import Button
@@ -37,9 +38,18 @@ class Game:
         self.maradek_ellenseg = 0
         self.utolso_spawn = 0
         self.hullam_fut = False
+
+        # Boss logika: minden wave végén jön egy boss
+        self.boss: BossEnemy | None = None
+        self.boss_spawned_wave: int = 0
+
         self.tornya_mod = False  # Tornyok módja
 
     def indit_hullam(self):
+        # Nem indíthatunk új hullámot, amíg a boss életben van.
+        if self.boss is not None:
+            return
+
         if not self.hullam_fut and len(self.ellensegek) == 0:
             self.hullam_szam += 1
             # Növekvő számú ellenség: 8 + (hullám * 3)
@@ -112,9 +122,41 @@ class Game:
         # Tornyok sebzése
         for torony in self.palya.tornyok:
             torony.celpont_kereses(self.ellensegek)
-        
-        # Halott ellenségek eltávolítása
-        self.ellensegek[:] = [e for e in self.ellensegek if e.hp > 0]
+
+        # Boss spawnolása a hullámok után (egy boss wave minden hullám után)
+        if (
+            not self.hullam_fut
+            and self.maradek_ellenseg == 0
+            and len(self.ellensegek) == 0
+            and self.hullam_szam > 0
+            and self.boss_spawned_wave < self.hullam_szam
+        ):
+            self.boss = BossEnemy(self.utvonal, wave=self.hullam_szam)
+            self.boss_spawned_wave = self.hullam_szam
+            self.ellensegek.append(self.boss)
+
+        # Boss és egyéb ellenségek update-elése
+        for e in list(self.ellensegek):
+            if isinstance(e, BossEnemy):
+                e.update(self.palya.tornyok)
+            else:
+                e.update()
+
+        # Halott vagy célba ért ellenségek eltávolítása
+        self.ellensegek[:] = [
+            e
+            for e in self.ellensegek
+            if e.hp > 0 and not getattr(e, "reached_end", False)
+        ]
+
+        # Ha a boss legyőzött, reseteljük a referenciát
+        if self.boss is not None and self.boss not in self.ellensegek:
+            self.boss = None
+
+        # Halott tornyok eltávolítása
+        for torony in list(self.palya.tornyok):
+            if torony.hp <= 0:
+                self.palya.remove_tower(torony)
 
         # Hullám vége ellenőrzés
         if self.maradek_ellenseg == 0 and len(self.ellensegek) == 0:
@@ -123,14 +165,19 @@ class Game:
     def rajzol(self) -> None:
         self.palya.rajzol(self.ablak)
 
+        # Tornyok rajzolása (HP sávval együtt)
+        for torony in self.palya.tornyok:
+            torony.rajzol(self.ablak)
+
+        # Ellenségek rajzolása
         for e in self.ellensegek[:]:
-            e.update()  # Itt lehet, hogy kell a dt, ha a te Enemy-d azt várja!
             e.draw(self.ablak)
-            if hasattr(e, "reached_end") and e.reached_end:
-                self.ellensegek.remove(e)
 
         # Gomb feliratának kezelése
-        if self.hullam_fut:
+        if self.boss is not None:
+            szoveg = f"BOSS WAVE {self.hullam_szam} - DEFEND!"
+            aktiv = False
+        elif self.hullam_fut:
             szoveg = f"WAVE {self.hullam_szam} IN PROGRESS"
             aktiv = False
         else:
