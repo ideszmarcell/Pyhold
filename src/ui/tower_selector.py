@@ -1,5 +1,5 @@
 import pygame
-from settings import RACS_MERET, FEHER, FEKETE, SZURKE
+from settings import AR_TORONY, RACS_MERET, FEHER, FEKETE, SZURKE
 
 
 class TowerSelector:
@@ -129,3 +129,10 @@ class TowerSelector:
                 surface.blit(img, rect)
                 # Szegély a kép körül
                 pygame.draw.rect(surface, FEHER, rect, 2)
+
+                # Árkijelzés
+                cost_text = f"{AR_TORONY}"
+                font = pygame.font.SysFont("Arial", 18, bold=True)
+                text_surf = font.render(cost_text, True, FEHER)
+                text_rect = text_surf.get_rect(midtop=(rect.centerx, rect.bottom + 4))
+                surface.blit(text_surf, text_rect)
