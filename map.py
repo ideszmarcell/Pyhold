@@ -107,13 +107,34 @@ class Palya:
         
         return True
 
+    def remove_tower(self, tower: Tower) -> None:
+        """Eltávolítja a tornyot a pályáról (map + torony lista + képállapot)."""
+        # Töröljük a 2x2 torony blokkot a pályarácsból
+        for dr in range(tower.size):
+            for dc in range(tower.size):
+                r = tower.gy + dr
+                c = tower.gx + dc
+                if 0 <= r < self.sorok and 0 <= c < self.oszlopok and self.adatok[r][c] == 2:
+                    self.adatok[r][c] = 0
+
+        # Távolítsuk el a torony objektumot
+        if tower in self.tornyok:
+            self.tornyok.remove(tower)
+
+        # Töröljük a torony kép hozzárendelést is
+        self.tower_images.pop((tower.gy, tower.gx), None)
+
     def cella_modositas(self, pos: tuple[int, int]) -> None:
         gx, gy = self.koordinata_szamitas(pos)
         if 0 <= gy < self.sorok and 0 <= gx < self.oszlopok:
             self.adatok[gy][gx] = 1 if self.adatok[gy][gx] == 0 else 0
 
     def afectar_tornya_blokk(self, pos: tuple[int, int]) -> bool:
-        """Hatást gyakorol az összes összekapcsolt tornyra a 2x2 blokkban. Visszatér True-val ha sikerült."""
+        """Hatást gyakorol az összekapcsolt toronyblokkra.
+
+        Ha van olyan torony objektum a listában, amelynek bal felső koordinátája
+egyezik a blokkéval, azt is eltávolítjuk.
+        """
         gx, gy = self.koordinata_szamitas(pos)
 
         # Ellenőrizd, hogy ez a cella torony-e
@@ -123,10 +144,8 @@ class Palya:
         ):
             return False
 
-        # Keresz meg a 2x2 blokk bal felső sarkát
+        # Keresd meg a 2x2 blokk bal felső sarkát
         top_r, top_c = gy, gx
-
-        # Ellenőrizd, ha ez nem a bal felső sarok
         if gy > 0 and gx > 0 and self.adatok[gy - 1][gx - 1] == 2:
             top_r, top_c = gy - 1, gx - 1
         elif gy > 0 and gx + 1 < self.oszlopok and self.adatok[gy - 1][gx] == 2:
@@ -134,7 +153,13 @@ class Palya:
         elif gx > 0 and gy + 1 < self.sorok and self.adatok[gy][gx - 1] == 2:
             top_r, top_c = gy, gx - 1
 
-        # Hatást gyakorol az összes cellára a 2x2 blokkban
+        # Próbáljuk meg eltávolítani a megfelelő torony objektumot
+        for torony in list(self.tornyok):
+            if torony.gx == top_c and torony.gy == top_r:
+                self.remove_tower(torony)
+                return True
+
+        # Ha nincs torony objektum, akkor legalább a pályarácsból távolítsuk el
         for dr in range(2):
             for dc in range(2):
                 nr, nc = top_r + dr, top_c + dc
