@@ -7,7 +7,7 @@ VILAGOSKEK = (100, 149, 237)
 class ArmoredEnemy(Enemy):
     def __init__(self, path):
         # Páncélzott ellenség: közepes sebesség, nagy élet
-        super().__init__(path, speed=2.0, hp=20, radius=17, color=VILAGOSKEK)
+        super().__init__(path, speed=2.0, hp=18, radius=17, color=VILAGOSKEK)
 
     def draw_shape(self, surface):
         # Az Armored ellenség egy háromszög (pajzs alakú)
