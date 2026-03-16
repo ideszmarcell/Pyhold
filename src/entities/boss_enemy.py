@@ -12,8 +12,8 @@ class BossEnemy(pygame.sprite.Sprite):
         self.utvonal = utvonal
         self.utvonal_index = 0
         self.sebesseg = 0.5 # A boss lassabb, mint a normál ellenségek
-        self.hp = 200 # A bossnak sok HP-ja van
-        self.max_hp = 200
+        self.hp = 150 # A bossnak több HP-ja van
+        self.max_hp = 150
         self.kep_meret = RACS_MERET * 2 # A boss nagyobb, mint a normál ellenségek
         self.kep = pygame.Surface((self.kep_meret, self.kep_meret), pygame.SRCALPHA)
         pygame.draw.circle(self.kep, (150, 0, 150), (self.kep_meret // 2, self.kep_meret // 2), self.kep_meret // 2)
@@ -66,7 +66,7 @@ class BossEnemy(pygame.sprite.Sprite):
                 self.y, 
                 self.utvonal[self.utvonal_index:], # Az útvonal hátralévő része
                 sebesseg=1.5, # Picit gyorsabb, mint a boss
-                hp=20 # Kevesebb HP
+                hp=16 # Kicsit több HP
             )
             self.spawnolt_ellensegek.append(uj_ellenseg)
             self.utolso_spawn_ido = most
