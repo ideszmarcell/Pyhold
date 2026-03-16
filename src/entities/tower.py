@@ -4,6 +4,7 @@ from settings import RACS_MERET, NARANCS, FEHER
 
 
 class Tower:
+    """Alapozó Tower osztály - az összes torony ebből származik."""
     # Osztályszintű képek gyorsítótár
     _images_cache: dict[str, pygame.Surface] = {}
 
@@ -24,17 +25,23 @@ class Tower:
             except Exception as e:
                 print(f"Hiba a {path} betöltésekor: {e}")
 
-    def __init__(self, gx: int, gy: int, image_type: str = "arc") -> None:
-        # Pozíció a rácson
+    def __init__(self, gx: int, gy: int) -> None:
+        """Alapozó konstruktor - felülírható leszármazottakban."""
         self.gx: int = gx
         self.gy: int = gy
-        self.image_type: str = image_type  # Az aktuális kép típusa
-
-        # Statisztikák (Clean Code: külön csoportosítva)
-        self.hatotav: int = 3  # Rácsnyi távolság
+        self.image_type: str = self._get_image_type()
+        
+        # Absztrakt attribútumok - felülírni kell leszármazottakban
+        self.hatotav: float = 3.0
         self.sebzes: int = 10
-        self.tuzelesi_sebesseg: int = 1000  # Milliszekundum (1 mp)
+        self.tuzelesi_sebesseg: int = 1000
+        self.nev: str = "Torony"
+        
         self.utolso_loves: int = 0
+
+    def _get_image_type(self) -> str:
+        """Visszaadja a torony típusát - felülírható leszármazottakban."""
+        return "arc"
 
     def _get_pixel_kozep(self) -> tuple[int, int]:
         """Kiszámolja a torony közepének pixel koordinátáit."""
@@ -51,7 +58,7 @@ class Tower:
         torony_kozep = self._get_pixel_kozep()
 
         for ellenseg in ellensegek:
-            # Távolság kiszámítása Pitagorasz-tétellel: a^2 + b^2 = c^2
+            # Távolság kiszámítása
             dx = ellenseg.x - torony_kozep[0]
             dy = ellenseg.y - torony_kozep[1]
             tavolsag = math.sqrt(dx**2 + dy**2)
@@ -61,18 +68,16 @@ class Tower:
                 break
 
     def tuzel(self, celpont, most: int) -> None:
-        """Sebzi az ellenséget és frissíti az időzítőt."""
-        celpont.eletero -= self.sebzes
+        """Sebzi az ellenséget. Felülírható leszármazottakban."""
+        celpont.hp -= self.sebzes
         self.utolso_loves = most
-        # Itt később adhatunk hozzá lövés effektet (pl. egy vonalat)
-        print(f"Torony ({self.gx}, {self.gy}) eltalálta az ellenséget!")
+        print(f"{self.nev} ({self.gx}, {self.gy}) eltalálta az ellenséget! Sebzés: {self.sebzes}")
 
     def rajzol(self, ablak: pygame.Surface) -> None:
         """Kirajzolja a torony képét."""
         px = self.gx * RACS_MERET + 4
         py = self.gy * RACS_MERET + 4
 
-        # Ha a kép nincs betöltve, rajzolj egy alapértelmezett négyzetet
         if self.image_type in self._images_cache:
             img = self._images_cache[self.image_type]
             ablak.blit(img, (px, py))
@@ -80,7 +85,6 @@ class Tower:
             # Fallback: narancs négyzet
             rect = (px, py, RACS_MERET - 8, RACS_MERET - 8)
             pygame.draw.rect(ablak, NARANCS, rect, border_radius=6)
-
             # Fehér kör a közepén
             kozep = self._get_pixel_kozep()
             pygame.draw.circle(ablak, FEHER, kozep, RACS_MERET // 5)

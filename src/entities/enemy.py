@@ -14,26 +14,42 @@ class Enemy:
         self.x, self.y = self.path[0]
         
         self.speed = speed
+        self.base_speed = speed  # Az alapértelmezett sebesség
         self.max_hp = hp
         self.hp = hp
         self.radius = radius
         self.color = color
         
         self.reached_end = False
+        
+        # Lassító effekt
+        self.slow_effect = 0  # 0-100 közötti érték: hány % -kal lassabb
+        self.slow_duration = 0  # Milliszekundum
+        self.slow_start = 0  # Az effekt kezdetének időpontja
 
     def update(self):
+        # Lassító effekt ellenőrzése
+        current_time = pygame.time.get_ticks()
+        if self.slow_start > 0 and current_time - self.slow_start < self.slow_duration:
+            # Az effekt még aktív: alkalmazz a lassítást
+            current_speed = self.base_speed * (1 - self.slow_effect / 100)
+        else:
+            # Az effekt lejárt
+            current_speed = self.base_speed
+            self.slow_effect = 0
+        
         if self.path_index < len(self.path) - 1:
             target_x, target_y = self.path[self.path_index + 1]
             dx = target_x - self.x
             dy = target_y - self.y
             distance = math.hypot(dx, dy)
 
-            if distance < self.speed:
+            if distance < current_speed:
                 self.path_index += 1
                 self.x, self.y = target_x, target_y
             else:
-                self.x += (dx / distance) * self.speed
-                self.y += (dy / distance) * self.speed
+                self.x += (dx / distance) * current_speed
+                self.y += (dy / distance) * current_speed
         else:
             self.reached_end = True
 

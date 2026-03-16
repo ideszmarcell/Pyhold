@@ -109,6 +109,13 @@ class Game:
                 self.maradek_ellenseg -= 1
                 self.utolso_spawn = most
 
+        # Tornyok sebzése
+        for torony in self.palya.tornyok:
+            torony.celpont_kereses(self.ellensegek)
+        
+        # Halott ellenségek eltávolítása
+        self.ellensegek[:] = [e for e in self.ellensegek if e.hp > 0]
+
         # Hullám vége ellenőrzés
         if self.maradek_ellenseg == 0 and len(self.ellensegek) == 0:
             self.hullam_fut = False
