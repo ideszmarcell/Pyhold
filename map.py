@@ -9,6 +9,9 @@ from settings import (
     MAZE,
 )
 from src.entities.tower import Tower
+from src.entities.arc_tower import ArcTower
+from src.entities.shock_tower import ShockTower
+from src.entities.slow_tower import SlowTower
 
 # pylint: disable=no-member
 
@@ -20,6 +23,8 @@ class Palya:
         self.adatok: list[list[int]] = [row[:] for row in MAZE]
         # Torny képválasztások tárolása: (r, c) -> image_type
         self.tower_images: dict[tuple[int, int], str] = {}
+        # Torony objektumok tárolása
+        self.tornyok: list[Tower] = []
 
     def koordinata_szamitas(self, pos: tuple[int, int]) -> tuple[int, int]:
         x, y = pos
@@ -57,11 +62,49 @@ class Palya:
         return self.tower_images.get(tower_block, None)
 
     def set_tower_image(self, r: int, c: int, image_type: str) -> bool:
-        """Beállítja a torony képét egy adott cellához."""
+        """Beállítja a torony képét egy adott cellához és létrehozza az objektumot."""
         tower_block = self._get_tower_block_top_left(r, c)
         if tower_block is None:
             return False
+        
+        # Torony képének beállítása
         self.tower_images[tower_block] = image_type
+        
+        # Torony objektum keresése vagy létrehozása
+        # A torony a bal felső sarknál helyezkedi el (tower_block)
+        torony = None
+        for t in self.tornyok:
+            if t.gx == tower_block[1] and t.gy == tower_block[0]:
+                torony = t
+                break
+        
+        # Ha nem létezik, hozz létre a megfelelő típussal
+        if torony is None:
+            # Pilóta Tower Factory - megfelelő osztályt hoz létre
+            if image_type == "arc":
+                torony = ArcTower(tower_block[1], tower_block[0])
+            elif image_type == "shock":
+                torony = ShockTower(tower_block[1], tower_block[0])
+            elif image_type == "slow":
+                torony = SlowTower(tower_block[1], tower_block[0])
+            else:
+                torony = ArcTower(tower_block[1], tower_block[0])  # Alapértelmezett
+            
+            self.tornyok.append(torony)
+        else:
+            # Ha már létezik, cseréld le az új típusúra
+            self.tornyok.remove(torony)
+            if image_type == "arc":
+                torony = ArcTower(tower_block[1], tower_block[0])
+            elif image_type == "shock":
+                torony = ShockTower(tower_block[1], tower_block[0])
+            elif image_type == "slow":
+                torony = SlowTower(tower_block[1], tower_block[0])
+            else:
+                torony = ArcTower(tower_block[1], tower_block[0])
+            
+            self.tornyok.append(torony)
+        
         return True
 
     def cella_modositas(self, pos: tuple[int, int]) -> None:
