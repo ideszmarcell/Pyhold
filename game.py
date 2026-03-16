@@ -1,9 +1,8 @@
 import pygame
-from settings import SZELESSEG, MAGASSAG, MAZE  # Itt a MAZE-t használd a pályához
+from settings import SZELESSEG, MAGASSAG, MAZE, AR_TORONY  # Itt a MAZE-t használd a pályához
 from map import Palya
 
 # Az új elérési út a mappaszerkezeted alapján:
-from src.entities.enemy import Enemy
 from src.entities.basic_enemy import BasicEnemy
 from src.entities.tank_enemy import TankEnemy
 from src.entities.fast_enemy import FastEnemy
@@ -30,6 +29,7 @@ class Game:
         # A gomb helye és mérete
         self.hullam_gomb = Button(SZELESSEG - 190, 10, 180, 45)
         self.tornya_gomb = Button(SZELESSEG - 190, 60, 180, 45)  # Tornyok gomb
+        self.menu_gomb = Button(SZELESSEG - 190, 110, 180, 45)  # Menü gomb
 
         self.futo = True
         self.utvonal = self.palya.kinyer_utvonal()
@@ -39,9 +39,32 @@ class Game:
         self.utolso_spawn = 0
         self.hullam_fut = False
 
+        # Gazdaság
+        self.penz = 200
+        self.tower_costs = {
+            "arc": AR_TORONY,
+            "shock": AR_TORONY,
+            "slow": AR_TORONY,
+        }
+
         # Boss logika: minden wave végén jön egy boss
         self.boss: BossEnemy | None = None
         self.boss_spawned_wave: int = 0
+        self.boss_pending: bool = False
+        self.boss_spawn_delay_ms: int = 2000  # mennyi idő múlva spawnoljon a boss
+        self.boss_spawn_ready_time: int = 0
+
+        # Boss legyőzése utáni jutalom
+        self.boss_reward: int = 150
+        self.boss_defeated_wave: int = 0
+
+        # Menü & játékállapot
+        self.menu_active = False
+        self.font = pygame.font.SysFont("Arial", 22, bold=True)
+
+        # Menü gombok (pause menu)
+        self.resume_button = Button(SZELESSEG // 2 - 90, MAGASSAG // 2 - 20, 180, 45)
+        self.quit_button = Button(SZELESSEG // 2 - 90, MAGASSAG // 2 + 40, 180, 45)
 
         self.tornya_mod = False  # Tornyok módja
 
@@ -62,6 +85,20 @@ class Game:
             if event.type == pygame.QUIT:
                 self.futo = False
 
+            if self.menu_gomb.handle_event(event):
+                self.menu_active = not self.menu_active
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.menu_active = not self.menu_active
+
+            if self.menu_active:
+                # Menü módban csak a menü gombokat kezeljük
+                if self.resume_button.handle_event(event):
+                    self.menu_active = False
+                if self.quit_button.handle_event(event):
+                    self.futo = False
+                continue
+
             if self.hullam_gomb.handle_event(event):
                 self.indit_hullam()
 
@@ -74,15 +111,21 @@ class Game:
                     if self.tower_selector.active:
                         selected_image = self.tower_selector.handle_click(event.pos)
                         if selected_image:
-                            # Beállítsd az új képet a toronyhoz
-                            # Az tower_selector.tower_gx az oszlop (c), tower_gy a sor (r)
-                            self.palya.set_tower_image(
-                                self.tower_selector.tower_gy,
-                                self.tower_selector.tower_gx,
-                                selected_image,
-                            )
-                            # Automatikusan kapcsold ki a tornyok módot
-                            self.tornya_mod = False
+                            # Ellenőrizzük a költséget
+                            cost = self.tower_costs.get(selected_image, AR_TORONY)
+                            if self.penz >= cost:
+                                self.penz -= cost
+                                # Beállítsd az új képet a toronyhoz
+                                # Az tower_selector.tower_gx az oszlop (c), tower_gy a sor (r)
+                                self.palya.set_tower_image(
+                                    self.tower_selector.tower_gy,
+                                    self.tower_selector.tower_gx,
+                                    selected_image,
+                                )
+                                # Automatikusan kapcsold ki a tornyok módot
+                                self.tornya_mod = False
+                            else:
+                                print("Nincs elég pénz a torony megvásárlásához!")
                     # Csak akkor hat a tornyokra, ha a mód aktív és nem gombra kattintottál
                     elif (
                         self.tornya_mod
@@ -105,6 +148,10 @@ class Game:
                                 self.tornya_mod = False
 
     def update(self):
+        # Ha a menü aktív, akkor ne frissítsük tovább a játékot (pause)
+        if self.menu_active:
+            return
+
         # Ellenségek beküldése
         if self.hullam_fut and self.maradek_ellenseg > 0:
             most = pygame.time.get_ticks()
@@ -123,7 +170,7 @@ class Game:
         for torony in self.palya.tornyok:
             torony.celpont_kereses(self.ellensegek)
 
-        # Boss spawnolása a hullámok után (egy boss wave minden hullám után)
+        # Boss spawnolása egy kis várakozás után (wave vége után)
         if (
             not self.hullam_fut
             and self.maradek_ellenseg == 0
@@ -131,9 +178,15 @@ class Game:
             and self.hullam_szam > 0
             and self.boss_spawned_wave < self.hullam_szam
         ):
+            if not self.boss_pending:
+                self.boss_pending = True
+                self.boss_spawn_ready_time = pygame.time.get_ticks() + self.boss_spawn_delay_ms
+
+        if self.boss_pending and pygame.time.get_ticks() >= self.boss_spawn_ready_time:
             self.boss = BossEnemy(self.utvonal, wave=self.hullam_szam)
-            self.boss_spawned_wave = self.hullam_szam
             self.ellensegek.append(self.boss)
+            self.boss_spawned_wave = self.hullam_szam
+            self.boss_pending = False
 
         # Boss és egyéb ellenségek update-elése
         for e in list(self.ellensegek):
@@ -149,8 +202,12 @@ class Game:
             if e.hp > 0 and not getattr(e, "reached_end", False)
         ]
 
-        # Ha a boss legyőzött, reseteljük a referenciát
+        # Ha a boss legyőzött, adj jutalmat és reseteljük a referenciát
         if self.boss is not None and self.boss not in self.ellensegek:
+            if self.hullam_szam > self.boss_defeated_wave:
+                self.penz += self.boss_reward
+                self.boss_defeated_wave = self.hullam_szam
+                print(f"Boss legyőzve: +{self.boss_reward} pénz (összesen: {self.penz})")
             self.boss = None
 
         # Halott tornyok eltávolítása
@@ -173,9 +230,16 @@ class Game:
         for e in self.ellensegek[:]:
             e.draw(self.ablak)
 
+        # Pénz kijelzése
+        penz_surf = self.font.render(f"Pénz: {self.penz}", True, (255, 255, 255))
+        self.ablak.blit(penz_surf, (10, 10))
+
         # Gomb feliratának kezelése
         if self.boss is not None:
             szoveg = f"BOSS WAVE {self.hullam_szam} - DEFEND!"
+            aktiv = False
+        elif self.boss_pending:
+            szoveg = "BOSS JÖN..."
             aktiv = False
         elif self.hullam_fut:
             szoveg = f"WAVE {self.hullam_szam} IN PROGRESS"
@@ -190,8 +254,24 @@ class Game:
         tornya_szoveg = "TORNYOK BE" if self.tornya_mod else "TORNYOK KI"
         self.tornya_gomb.draw(self.ablak, tornya_szoveg, True)
 
+        # Menü gomb
+        self.menu_gomb.draw(self.ablak, "MENÜ", True)
+
         # Torony képválasztó kirajzolása
         self.tower_selector.draw(self.ablak)
+
+        # Menü overlay
+        if self.menu_active:
+            overlay = pygame.Surface((SZELESSEG, MAGASSAG), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 180))
+            self.ablak.blit(overlay, (0, 0))
+
+            menu_title = self.font.render("MENÜ", True, (255, 255, 255))
+            menu_rect = menu_title.get_rect(center=(SZELESSEG // 2, MAGASSAG // 2 - 80))
+            self.ablak.blit(menu_title, menu_rect)
+
+            self.resume_button.draw(self.ablak, "Folytatás", True)
+            self.quit_button.draw(self.ablak, "Kilépés", True)
 
         pygame.display.update()
 
