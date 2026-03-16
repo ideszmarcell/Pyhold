@@ -8,6 +8,7 @@ from settings import (
     FEHER,
     MAZE,
 )
+from src.entities.tower import Tower
 
 # pylint: disable=no-member
 
@@ -17,10 +18,51 @@ class Palya:
         self.oszlopok: int = len(MAZE[0])
         self.sorok: int = len(MAZE)
         self.adatok: list[list[int]] = [row[:] for row in MAZE]
+        # Torny képválasztások tárolása: (r, c) -> image_type
+        self.tower_images: dict[tuple[int, int], str] = {}
 
     def koordinata_szamitas(self, pos: tuple[int, int]) -> tuple[int, int]:
         x, y = pos
         return x // RACS_MERET, y // RACS_MERET
+
+    def _get_tower_block_top_left(self, r: int, c: int) -> tuple[int, int] | None:
+        """
+        Megtalálja a 2x2 torony blokk bal felső sarkát.
+        Ha a cella torony (2), visszatér a blokk bal felső koordinátájával, egyébként None-t ad vissza.
+        """
+        if (
+            not (0 <= r < self.sorok and 0 <= c < self.oszlopok)
+            or self.adatok[r][c] != 2
+        ):
+            return None
+
+        # Keress meg a 2x2 blokk bal felső sarkát
+        top_r, top_c = r, c
+
+        # Ellenőrizd, ha ez nem a bal felső sarok
+        if r > 0 and c > 0 and self.adatok[r - 1][c - 1] == 2:
+            top_r, top_c = r - 1, c - 1
+        elif r > 0 and c + 1 < self.oszlopok and self.adatok[r - 1][c] == 2:
+            top_r, top_c = r - 1, c
+        elif c > 0 and r + 1 < self.sorok and self.adatok[r][c - 1] == 2:
+            top_r, top_c = r, c - 1
+
+        return (top_r, top_c)
+
+    def get_tower_image(self, r: int, c: int) -> str | None:
+        """Visszaadja a torony képét egy adott cellához. Ha nincs kiválasztva, None-t ad vissza."""
+        tower_block = self._get_tower_block_top_left(r, c)
+        if tower_block is None:
+            return None
+        return self.tower_images.get(tower_block, None)
+
+    def set_tower_image(self, r: int, c: int, image_type: str) -> bool:
+        """Beállítja a torony képét egy adott cellához."""
+        tower_block = self._get_tower_block_top_left(r, c)
+        if tower_block is None:
+            return False
+        self.tower_images[tower_block] = image_type
+        return True
 
     def cella_modositas(self, pos: tuple[int, int]) -> None:
         gx, gy = self.koordinata_szamitas(pos)
@@ -30,14 +72,17 @@ class Palya:
     def afectar_tornya_blokk(self, pos: tuple[int, int]) -> bool:
         """Hatást gyakorol az összes összekapcsolt tornyra a 2x2 blokkban. Visszatér True-val ha sikerült."""
         gx, gy = self.koordinata_szamitas(pos)
-        
+
         # Ellenőrizd, hogy ez a cella torony-e
-        if not (0 <= gy < self.sorok and 0 <= gx < self.oszlopok) or self.adatok[gy][gx] != 2:
+        if (
+            not (0 <= gy < self.sorok and 0 <= gx < self.oszlopok)
+            or self.adatok[gy][gx] != 2
+        ):
             return False
-        
+
         # Keresz meg a 2x2 blokk bal felső sarkát
         top_r, top_c = gy, gx
-        
+
         # Ellenőrizd, ha ez nem a bal felső sarok
         if gy > 0 and gx > 0 and self.adatok[gy - 1][gx - 1] == 2:
             top_r, top_c = gy - 1, gx - 1
@@ -45,14 +90,18 @@ class Palya:
             top_r, top_c = gy - 1, gx
         elif gx > 0 and gy + 1 < self.sorok and self.adatok[gy][gx - 1] == 2:
             top_r, top_c = gy, gx - 1
-        
+
         # Hatást gyakorol az összes cellára a 2x2 blokkban
         for dr in range(2):
             for dc in range(2):
                 nr, nc = top_r + dr, top_c + dc
-                if 0 <= nr < self.sorok and 0 <= nc < self.oszlopok and self.adatok[nr][nc] == 2:
+                if (
+                    0 <= nr < self.sorok
+                    and 0 <= nc < self.oszlopok
+                    and self.adatok[nr][nc] == 2
+                ):
                     self.adatok[nr][nc] = 0  # Torony eltávolítása
-        
+
         return True
 
     def _rajzol_vonalak(self, felulet: pygame.Surface) -> None:
@@ -93,6 +142,10 @@ class Palya:
                         rajzolt_tornyok.add((r, c + 1))
                         rajzolt_tornyok.add((r + 1, c))
                         rajzolt_tornyok.add((r + 1, c + 1))
+
+                        # Torony rajzolása képpel
+                        self._rajzol_torony_keppel(felulet, c, r, szelesseg, magassag)
+                        continue
                 elif self.adatok[r][c] == 3:  # Speciális épület
                     szin = KEK
                 elif self.adatok[r][c] == 6:  # Kezdőpont
@@ -103,17 +156,56 @@ class Palya:
                     # BIZTONSÁGI HÁLÓ: Ha ismeretlen szám van a pályán, legyen rikító lila!
                     szin = (255, 0, 255)
 
-                # Rajzolás
-                rect = pygame.Rect(c * RACS_MERET, r * RACS_MERET, szelesseg, magassag)
-                pygame.draw.rect(felulet, szin, rect)
+                if szin:
+                    # Rajzolás
+                    rect = pygame.Rect(
+                        c * RACS_MERET, r * RACS_MERET, szelesseg, magassag
+                    )
+                    pygame.draw.rect(felulet, szin, rect)
 
-                rect = (
-                    c * RACS_MERET + 1,
-                    r * RACS_MERET + 1,
-                    szelesseg - 2,
-                    magassag - 2,
-                )
-                pygame.draw.rect(felulet, szin, rect)
+                    rect = (
+                        c * RACS_MERET + 1,
+                        r * RACS_MERET + 1,
+                        szelesseg - 2,
+                        magassag - 2,
+                    )
+                    pygame.draw.rect(felulet, szin, rect)
+
+    def _rajzol_torony_keppel(
+        self, felulet: pygame.Surface, c: int, r: int, szelesseg: int, magassag: int
+    ) -> None:
+        """Kirajzolja a tornyot képpel vagy fallback-kel."""
+        # Kérj az kiválasztott kép típusát
+        image_type = self.get_tower_image(r, c)
+
+        # Ha van kiválasztott kép, rajzold meg
+        if image_type is not None and image_type in Tower._images_cache:
+            try:
+                # Méretezd a képet, hogy foglalkozzon a 2x2 mérettel
+                img = Tower._images_cache[image_type]
+                scaled_img = pygame.transform.scale(img, (szelesseg - 8, magassag - 8))
+                felulet.blit(scaled_img, (c * RACS_MERET + 4, r * RACS_MERET + 4))
+            except Exception as e:
+                print(f"Hiba a torony képének rajzolásánál: {e}")
+                self._rajzol_torony_alapertelmezett(felulet, c, r, szelesseg, magassag)
+        else:
+            # Ha nincs kiválasztott kép, vagy a kép nincs az cache-ben, rajzolj alapértelmezést
+            self._rajzol_torony_alapertelmezett(felulet, c, r, szelesseg, magassag)
+
+    def _rajzol_torony_alapertelmezett(
+        self, felulet: pygame.Surface, c: int, r: int, szelesseg: int, magassag: int
+    ) -> None:
+        """Az alapértelmezett torony ábra (zöld négyzet)."""
+        rect = pygame.Rect(c * RACS_MERET, r * RACS_MERET, szelesseg, magassag)
+        pygame.draw.rect(felulet, ZOLD, rect)
+
+        rect_inner = (
+            c * RACS_MERET + 1,
+            r * RACS_MERET + 1,
+            szelesseg - 2,
+            magassag - 2,
+        )
+        pygame.draw.rect(felulet, ZOLD, rect_inner)
 
     def rajzol(self, felulet: pygame.Surface) -> None:
         felulet.fill(FEKETE)

@@ -2,12 +2,34 @@ import pygame
 import math
 from settings import RACS_MERET, NARANCS, FEHER
 
+
 class Tower:
-    def __init__(self, gx: int, gy: int) -> None:
+    # Osztályszintű képek gyorsítótár
+    _images_cache: dict[str, pygame.Surface] = {}
+
+    TOWER_IMAGES = {
+        "arc": "assets/images/arc_tower.png",
+        "shock": "assets/images/shock_tower.png",
+        "slow": "assets/images/slow_tower.png",
+    }
+
+    @classmethod
+    def load_images(cls) -> None:
+        """Előbetölti az összes torony képet."""
+        for name, path in cls.TOWER_IMAGES.items():
+            try:
+                img = pygame.image.load(path)
+                img = pygame.transform.scale(img, (RACS_MERET - 8, RACS_MERET - 8))
+                cls._images_cache[name] = img
+            except Exception as e:
+                print(f"Hiba a {path} betöltésekor: {e}")
+
+    def __init__(self, gx: int, gy: int, image_type: str = "arc") -> None:
         # Pozíció a rácson
         self.gx: int = gx
         self.gy: int = gy
-        
+        self.image_type: str = image_type  # Az aktuális kép típusa
+
         # Statisztikák (Clean Code: külön csoportosítva)
         self.hatotav: int = 3  # Rácsnyi távolság
         self.sebzes: int = 10
@@ -46,14 +68,19 @@ class Tower:
         print(f"Torony ({self.gx}, {self.gy}) eltalálta az ellenséget!")
 
     def rajzol(self, ablak: pygame.Surface) -> None:
-        """Kirajzolja a torony testét és ágyúját."""
-        px = self.gx * RACS_MERET
-        py = self.gy * RACS_MERET
-        
-        # Test (Narancs négyzet lekerekítve)
-        rect = (px + 4, py + 4, RACS_MERET - 8, RACS_MERET - 8)
-        pygame.draw.rect(ablak, NARANCS, rect, border_radius=6)
-        
-        # Ágyú (Fehér kör a közepén)
-        kozep = self._get_pixel_kozep()
-        pygame.draw.circle(ablak, FEHER, kozep, RACS_MERET // 5)
+        """Kirajzolja a torony képét."""
+        px = self.gx * RACS_MERET + 4
+        py = self.gy * RACS_MERET + 4
+
+        # Ha a kép nincs betöltve, rajzolj egy alapértelmezett négyzetet
+        if self.image_type in self._images_cache:
+            img = self._images_cache[self.image_type]
+            ablak.blit(img, (px, py))
+        else:
+            # Fallback: narancs négyzet
+            rect = (px, py, RACS_MERET - 8, RACS_MERET - 8)
+            pygame.draw.rect(ablak, NARANCS, rect, border_radius=6)
+
+            # Fehér kör a közepén
+            kozep = self._get_pixel_kozep()
+            pygame.draw.circle(ablak, FEHER, kozep, RACS_MERET // 5)
