@@ -11,6 +11,7 @@ from src.entities.boss_enemy import BossEnemy
 from src.entities.tower import Tower
 from src.ui.tower_selector import TowerSelector
 from button import Button
+from game_over import GameOverScreen
 
 
 class Game:
@@ -67,6 +68,9 @@ class Game:
         self.quit_button = Button(SZELESSEG // 2 - 90, MAGASSAG // 2 + 40, 180, 45)
 
         self.tornya_mod = False  # Tornyok módja
+        
+        self.eletek = 4  # 4 ellenség érhet be
+        self.game_over_screen = GameOverScreen()
 
     def indit_hullam(self):
         # Nem indíthatunk új hullámot, amíg a boss életben van.
@@ -84,6 +88,14 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.futo = False
+
+            if self.game_over_screen.active:
+                action = self.game_over_screen.handle_event(event)
+                if action == "restart":
+                    self.__init__()  # Játék teljes újraindítása
+                elif action == "quit":
+                    self.futo = False
+                continue  
 
             if self.menu_gomb.handle_event(event):
                 self.menu_active = not self.menu_active
@@ -148,8 +160,8 @@ class Game:
                                 self.tornya_mod = False
 
     def update(self):
-        # Ha a menü aktív, akkor ne frissítsük tovább a játékot (pause)
-        if self.menu_active:
+        # Ha a menü aktív VAGY game over van, akkor ne frissítsük tovább a játékot
+        if self.menu_active or self.game_over_screen.active:
             return
 
         # Ellenségek beküldése
@@ -199,7 +211,13 @@ class Game:
             else:
                 e.update()
 
-        # Halott vagy célba ért ellenségek eltávolítása
+        # --- Életvesztés és Game Over logika ---
+        for e in self.ellensegek:
+            if getattr(e, "reached_end", False):
+                self.eletek -= 1
+                if self.eletek <= 0:
+                    self.game_over_screen.active = True
+
         self.ellensegek[:] = [
             e
             for e in self.ellensegek
@@ -237,6 +255,9 @@ class Game:
         # Pénz kijelzése
         penz_surf = self.font.render(f"Pénz: {self.penz}", True, (255, 255, 255))
         self.ablak.blit(penz_surf, (10, 10))
+        elet_szin = (255, 255, 255) if self.eletek > 1 else (255, 50, 50)
+        elet_surf = self.font.render(f"Életek: {max(0, self.eletek)}", True, elet_szin)
+        self.ablak.blit(elet_surf, (10, 40))
 
         # Gomb feliratának kezelése
         if self.boss is not None:
@@ -276,6 +297,9 @@ class Game:
 
             self.resume_button.draw(self.ablak, "Folytatás", True)
             self.quit_button.draw(self.ablak, "Kilépés", True)
+            
+        if self.game_over_screen.active:
+            self.game_over_screen.draw(self.ablak, self.hullam_szam)
 
         pygame.display.update()
 
