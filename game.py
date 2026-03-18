@@ -99,6 +99,7 @@ class Game:
             if event.type == pygame.QUIT:
                 self.futo = False
 
+
             if self.start_screen.active:
                 action = self.start_screen.handle_event(event)
                 if action == "start":
@@ -106,6 +107,12 @@ class Game:
                 elif action == "quit":
                     self.futo = False
                 continue
+
+            # Az overlay gombok handle_event-jét minden event-re meghívjuk
+            if self.fejlesztes_mod and self.selected_upgrade_tower:
+                self.upgrade_button.handle_event(event)
+                self.deselect_button.handle_event(event)
+
 
             if self.game_over_screen.active:
                 action = self.game_over_screen.handle_event(event)
@@ -144,25 +151,28 @@ class Game:
                 if not self.fejlesztes_mod:
                     self.selected_upgrade_tower = None
 
-            # Fejlesztés módban kezeljük az upgrade gombokat
-            if self.fejlesztes_mod and self.selected_upgrade_tower:
-                if self.upgrade_button.handle_event(event):
-                    upgrade_cost = self.selected_upgrade_tower.get_upgrade_cost()
-                    if upgrade_cost > 0:
-                        if self.penz >= upgrade_cost:
-                            self.penz -= upgrade_cost
-                            self.selected_upgrade_tower.fejlesztes()
-                            print(f"Torony fejlesztve! Szint: {self.selected_upgrade_tower.level}")
-                        else:
-                            print(f"Nincs elég pénz! Szükséges: {upgrade_cost}, Van: {self.penz}")
-                    else:
-                        print("A torony már maximum szinten van!")
-                
-                if self.deselect_button.handle_event(event):
-                    self.selected_upgrade_tower = None
-
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
+                    # Az overlay gombok kezelése (már hívódtak a handle_event-jei)
+                    if self.fejlesztes_mod and self.selected_upgrade_tower:
+                        # Az overlay-n BÁRMILYEN kattintás fejleszti a tornyot (ha nem a deselect gomb)
+                        if self.deselect_button.is_hovered:
+                            self.selected_upgrade_tower = None
+                            continue
+                        else:
+                            # Az overlay-n bárhová kattintva fejleszti a tornyot
+                            upgrade_cost = self.selected_upgrade_tower.get_upgrade_cost()
+                            if upgrade_cost > 0:
+                                if self.penz >= upgrade_cost:
+                                    self.penz -= upgrade_cost
+                                    self.selected_upgrade_tower.fejlesztes()
+                                    print(f"Torony fejlesztve! Szint: {self.selected_upgrade_tower.level}")
+                                else:
+                                    print(f"Nincs elég pénz! Szükséges: {upgrade_cost}, Van: {self.penz}")
+                            else:
+                                print("A torony már maximum szinten van!")
+                            continue
+
                     # Ha a torony képválasztó aktív, kezeld a kattintást
                     if self.tower_selector.active:
                         selected_image = self.tower_selector.handle_click(event.pos)
@@ -181,6 +191,7 @@ class Game:
                                 self.tornya_mod = False
                             else:
                                 print("Nincs elég pénz a torony megvásárlásához!")
+
                     # Torony kiválasztása (tornyok módban)
                     elif (
                         self.tornya_mod
@@ -212,10 +223,12 @@ class Game:
                             and 0 <= gx < self.palya.oszlopok
                             and self.palya.adatok[gy][gx] == 2
                         ):
-                            # Torony megkeresése
+                            # Torony megkeresése - 2x2 terület kezelése
                             tower_at_pos = None
                             for tower in self.palya.tornyok:
-                                if tower.gx == gx and tower.gy == gy:
+                                # Torony 2x2 cellát foglal, ellenőrizni az összes cellát
+                                if (tower.gx <= gx < tower.gx + tower.size and 
+                                    tower.gy <= gy < tower.gy + tower.size):
                                     tower_at_pos = tower
                                     break
                             
