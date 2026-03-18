@@ -94,6 +94,15 @@ class Game:
             self.maradek_ellenseg = 8 + (self.hullam_szam * 3)
             self.hullam_fut = True
 
+    def _click_on_ui_buttons(self, pos: tuple[int, int]) -> bool:
+        # Véletlen kattintás elkerülése a főképernyős toronyválasztásnál
+        return (
+            self.hullam_gomb.rect.collidepoint(pos)
+            or self.tornya_gomb.rect.collidepoint(pos)
+            or self.fejlesztes_gomb.rect.collidepoint(pos)
+            or self.menu_gomb.rect.collidepoint(pos)
+        )
+
     def esemenyek(self) -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -153,14 +162,18 @@ class Game:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
+                    mouse_pos = event.pos
+                    # Ha UI gombok egyike alatt kattintunk, ne csináljunk további terepi eseményt
+                    if self._click_on_ui_buttons(mouse_pos):
+                        continue
+
                     # Az overlay gombok kezelése (már hívódtak a handle_event-jei)
                     if self.fejlesztes_mod and self.selected_upgrade_tower:
-                        # Az overlay-n BÁRMILYEN kattintás fejleszti a tornyot (ha nem a deselect gomb)
                         if self.deselect_button.is_hovered:
                             self.selected_upgrade_tower = None
                             continue
-                        else:
-                            # Az overlay-n bárhová kattintva fejleszti a tornyot
+
+                        if self.upgrade_button.is_hovered:
                             upgrade_cost = self.selected_upgrade_tower.get_upgrade_cost()
                             if upgrade_cost > 0:
                                 if self.penz >= upgrade_cost:
@@ -172,6 +185,9 @@ class Game:
                             else:
                                 print("A torony már maximum szinten van!")
                             continue
+
+                        # Többi kattintás nem fejlesztésre (csak overlay bezárása szükség esetén)
+                        continue
 
                     # Ha a torony képválasztó aktív, kezeld a kattintást
                     if self.tower_selector.active:
@@ -195,10 +211,7 @@ class Game:
                     # Torony kiválasztása (tornyok módban)
                     elif (
                         self.tornya_mod
-                        and not self.hullam_gomb.is_hovered
-                        and not self.tornya_gomb.is_hovered
-                        and not self.fejlesztes_gomb.is_hovered
-                        and not self.menu_gomb.is_hovered
+                        and not self._click_on_ui_buttons(event.pos)
                     ):
                         gx, gy = self.palya.koordinata_szamitas(event.pos)
                         if (
@@ -213,9 +226,7 @@ class Game:
                     # Torony kiválasztása fejlesztéshez
                     elif (
                         self.fejlesztes_mod
-                        and not self.hullam_gomb.is_hovered
-                        and not self.fejlesztes_gomb.is_hovered
-                        and not self.menu_gomb.is_hovered
+                        and not self._click_on_ui_buttons(event.pos)
                     ):
                         gx, gy = self.palya.koordinata_szamitas(event.pos)
                         if (
@@ -337,39 +348,45 @@ class Game:
         for e in self.ellensegek[:]:
             e.draw(self.ablak, self.palya.offset_x, self.palya.offset_y)
 
-        # Pénz kijelzése
+        # HUD panel a bal felső sarokban (külön háttérrel a tiszta megjelenítésért)
+        hud_w, hud_h = 250, 110
+        hud_bg = pygame.Surface((hud_w, hud_h), pygame.SRCALPHA)
+        hud_bg.fill((0, 0, 0, 180))
+        self.ablak.blit(hud_bg, (8, 8))
+        pygame.draw.rect(self.ablak, (255, 255, 255), (8, 8, hud_w, hud_h), 2, border_radius=8)
+
         penz_surf = self.font.render(f"Pénz: {self.penz}", True, (255, 255, 255))
-        self.ablak.blit(penz_surf, (10, 10))
+        self.ablak.blit(penz_surf, (20, 16))
         elet_szin = (255, 255, 255) if self.eletek > 1 else (255, 50, 50)
         elet_surf = self.font.render(f"Életek: {max(0, self.eletek)}", True, elet_szin)
-        self.ablak.blit(elet_surf, (10, 40))
+        self.ablak.blit(elet_surf, (20, 44))
 
-        # Gomb feliratának kezelése
         if self.boss is not None:
-            szoveg = f"BOSS WAVE {self.hullam_szam} - DEFEND!"
-            aktiv = False
+            wave_status = f"Boss hullám: {self.hullam_szam}"
+            hullam_active = False
         elif self.boss_pending:
-            szoveg = "BOSS JÖN..."
-            aktiv = False
+            wave_status = "Boss készül..."
+            hullam_active = False
         elif self.hullam_fut:
-            szoveg = f"WAVE {self.hullam_szam} IN PROGRESS"
-            aktiv = False
+            wave_status = f"Hullám {self.hullam_szam} folyamatban"
+            hullam_active = False
         else:
-            szoveg = f"START WAVE {self.hullam_szam + 1}"
-            aktiv = True
+            wave_status = f"Következő hullám: {self.hullam_szam + 1}"
+            hullam_active = True
 
-        self.hullam_gomb.draw(self.ablak, szoveg, aktiv)
+        wave_surf = self.font.render(wave_status, True, (200, 200, 255))
+        self.ablak.blit(wave_surf, (20, 72))
 
-        # Tornyok gomb felirata
-        tornya_szoveg = "TORNYOK BE" if self.tornya_mod else "TORNYOK KI"
+        # Gombok feliratai fix rövid formában (nem csúsznak szét): hullám indítás + mód kapcsoló
+        self.hullam_gomb.draw(self.ablak, "Hullám indítása", hullam_active)
+
+        tornya_szoveg = "Tornyok: BE" if self.tornya_mod else "Tornyok: KI"
         self.tornya_gomb.draw(self.ablak, tornya_szoveg, True)
 
-        # Fejlesztések gomb felirata
-        fejlesztes_szoveg = "FEJL. BE" if self.fejlesztes_mod else "FEJL. KI"
+        fejlesztes_szoveg = "Fejl.: BE" if self.fejlesztes_mod else "Fejl.: KI"
         self.fejlesztes_gomb.draw(self.ablak, fejlesztes_szoveg, True)
 
-        # Menü gomb
-        self.menu_gomb.draw(self.ablak, "MENÜ", True)
+        self.menu_gomb.draw(self.ablak, "Menü", True)
 
         # Torony képválasztó kirajzolása
         self.tower_selector.draw(self.ablak)
@@ -396,36 +413,57 @@ class Game:
             overlay.fill((0, 0, 0, 180))
             self.ablak.blit(overlay, (0, 0))
 
+            # Fejlesztés panel háttér
+            panel_w, panel_h = 420, 260
+            panel_rect = pygame.Rect(
+                (SZELESSEG - panel_w) // 2,
+                (MAGASSAG - panel_h) // 2,
+                panel_w,
+                panel_h,
+            )
+            pygame.draw.rect(self.ablak, (20, 20, 30, 220), panel_rect)
+            pygame.draw.rect(self.ablak, (200, 200, 255), panel_rect, 2, border_radius=10)
+
             # Torony információk
             tower = self.selected_upgrade_tower
             title = self.font.render(f"{tower.nev} - Level {tower.level}/{tower.max_level}", True, (255, 255, 255))
-            title_rect = title.get_rect(center=(SZELESSEG // 2, MAGASSAG // 2 - 100))
+            title_rect = title.get_rect(center=(SZELESSEG // 2, panel_rect.top + 40))
             self.ablak.blit(title, title_rect)
 
             # Jelenlegi statisztika
             stats_font = pygame.font.SysFont("Arial", 18)
+            info_y = panel_rect.top + 80
+            line_spacing = 28
+
             sebzes_text = stats_font.render(f"Sebzés: {tower.sebzes}", True, (255, 200, 0))
             hatotav_text = stats_font.render(f"Hatótáv: {tower.hatotav:.1f}", True, (255, 200, 0))
             speed_text = stats_font.render(f"Lövési sebesség: {tower.tuzelesi_sebesseg}ms", True, (255, 200, 0))
-            
-            self.ablak.blit(sebzes_text, (SZELESSEG // 2 - 100, MAGASSAG // 2 - 40))
-            self.ablak.blit(hatotav_text, (SZELESSEG // 2 - 100, MAGASSAG // 2 - 10))
-            self.ablak.blit(speed_text, (SZELESSEG // 2 - 100, MAGASSAG // 2 + 20))
+
+            self.ablak.blit(sebzes_text, (panel_rect.left + 30, info_y))
+            self.ablak.blit(hatotav_text, (panel_rect.left + 30, info_y + line_spacing))
+            self.ablak.blit(speed_text, (panel_rect.left + 30, info_y + 2 * line_spacing))
 
             # Fejlesztés költsége
             upgrade_cost = tower.get_upgrade_cost()
             if upgrade_cost > 0:
                 cost_text = self.font.render(f"Fejlesztés költsége: {upgrade_cost} pénz", True, (255, 100, 100))
-                cost_rect = cost_text.get_rect(center=(SZELESSEG // 2, MAGASSAG // 2 + 60))
-                self.ablak.blit(cost_text, cost_rect)
-                
-                # Gombok
-                self.upgrade_button.draw(self.ablak, "Fejlesztés", True)
             else:
                 cost_text = self.font.render("Maximum szint elérve!", True, (100, 255, 100))
-                cost_rect = cost_text.get_rect(center=(SZELESSEG // 2, MAGASSAG // 2 + 60))
-                self.ablak.blit(cost_text, cost_rect)
-            
+
+            cost_rect = cost_text.get_rect(center=(SZELESSEG // 2, panel_rect.top + 190))
+            self.ablak.blit(cost_text, cost_rect)
+
+            # Gombok
+            self.upgrade_button.rect.x = SZELESSEG // 2 - 90
+            self.upgrade_button.rect.y = panel_rect.top + 210
+            self.deselect_button.rect.x = SZELESSEG // 2 - 90
+            self.deselect_button.rect.y = panel_rect.top + 248
+
+            if upgrade_cost > 0:
+                self.upgrade_button.draw(self.ablak, "Fejlesztés", True)
+            else:
+                self.upgrade_button.draw(self.ablak, "Nincs", False)
+
             self.deselect_button.draw(self.ablak, "Vissza", True)
 
         pygame.display.update()
