@@ -12,7 +12,7 @@ from src.entities.tower import Tower
 from src.ui.tower_selector import TowerSelector
 from button import Button
 from game_over import GameOverScreen
-
+from start_screen import StartScreen
 
 class Game:
     def __init__(self) -> None:
@@ -80,6 +80,7 @@ class Game:
         
         self.eletek = 4  # 4 ellenség érhet be
         self.game_over_screen = GameOverScreen()
+        self.start_screen = StartScreen()
 
     def indit_hullam(self):
         # Nem indíthatunk új hullámot, amíg a boss életben van.
@@ -97,6 +98,14 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.futo = False
+
+            if self.start_screen.active:
+                action = self.start_screen.handle_event(event)
+                if action == "start":
+                    self.start_screen.active = False
+                elif action == "quit":
+                    self.futo = False
+                continue
 
             if self.game_over_screen.active:
                 action = self.game_over_screen.handle_event(event)
@@ -217,9 +226,10 @@ class Game:
                                 self.selected_upgrade_tower = None
 
     def update(self):
-        # Ha a menü aktív VAGY game over van, akkor ne frissítsük tovább a játékot
-        if self.menu_active or self.game_over_screen.active:
+        if self.start_screen.active or self.menu_active or self.game_over_screen.active:
             return
+            
+        # ... itt folytatódik a meglévő kódod ...
 
         # Ellenségek beküldése
         if self.hullam_fut and self.maradek_ellenseg > 0:
@@ -299,6 +309,11 @@ class Game:
             self.hullam_fut = False
 
     def rajzol(self) -> None:
+        if self.start_screen.active:
+            self.start_screen.draw(self.ablak)
+            pygame.display.update()
+            return
+        
         self.palya.rajzol(self.ablak)
 
         # Tornyok rajzolása (HP sávval együtt)
