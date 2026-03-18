@@ -11,6 +11,8 @@ class Button:
         if event.type == pygame.MOUSEMOTION:
             self.is_hovered = self.rect.collidepoint(event.pos)
         if event.type == pygame.MOUSEBUTTONDOWN:
+            # Frissítsük az is_hovered flag-et az egér aktuális pozíciója alapján
+            self.is_hovered = self.rect.collidepoint(event.pos)
             if event.button == 1 and self.is_hovered:
                 return True
         return False

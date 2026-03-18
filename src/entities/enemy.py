@@ -53,17 +53,17 @@ class Enemy:
         else:
             self.reached_end = True
 
-    def draw_shape(self, surface):
+    def draw_shape(self, surface, offset_x=0, offset_y=0):
         """Alapértelmezett alakzat: egy kör. Ezt fogják felülírni a speciális ellenségek."""
-        pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.radius)
+        pygame.draw.circle(surface, self.color, (int(self.x + offset_x), int(self.y + offset_y)), self.radius)
 
-    def draw(self, surface):
-        self.draw_shape(surface)
+    def draw(self, surface, offset_x=0, offset_y=0):
+        self.draw_shape(surface, offset_x, offset_y)
         
         hp_bar_width = 30
         hp_bar_height = 5
         hp_ratio = self.hp / self.max_hp
         
-        pygame.draw.rect(surface, PIROS, (self.x - hp_bar_width/2, self.y - self.radius - 12, hp_bar_width, hp_bar_height))
+        pygame.draw.rect(surface, PIROS, (self.x - hp_bar_width/2 + offset_x, self.y - self.radius - 12 + offset_y, hp_bar_width, hp_bar_height))
         if self.hp > 0:
-            pygame.draw.rect(surface, ZOLD, (self.x - hp_bar_width/2, self.y - self.radius - 12, hp_bar_width * hp_ratio, hp_bar_height))
+            pygame.draw.rect(surface, ZOLD, (self.x - hp_bar_width/2 + offset_x, self.y - self.radius - 12 + offset_y, hp_bar_width * hp_ratio, hp_bar_height))

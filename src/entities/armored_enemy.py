@@ -9,11 +9,11 @@ class ArmoredEnemy(Enemy):
         # Páncélzott ellenség: közepes sebesség, nagy élet
         super().__init__(path, speed=2.0, hp=18, radius=17, color=VILAGOSKEK)
 
-    def draw_shape(self, surface):
+    def draw_shape(self, surface, offset_x=0, offset_y=0):
         # Az Armored ellenség egy háromszög (pajzs alakú)
         points = [
-            (self.x, self.y - self.radius - 5),  # Felső csúcs
-            (self.x + self.radius + 5, self.y + self.radius),   # Jobb alsó
-            (self.x - self.radius - 5, self.y + self.radius)    # Bal alsó
+            (self.x + offset_x, self.y - self.radius - 5 + offset_y),  # Felső csúcs
+            (self.x + self.radius + 5 + offset_x, self.y + self.radius + offset_y),   # Jobb alsó
+            (self.x - self.radius - 5 + offset_x, self.y + self.radius + offset_y)    # Bal alsó
         ]
         pygame.draw.polygon(surface, self.color, points)
