@@ -144,7 +144,12 @@ class Game:
                 if event.button == 1:
                     # Az overlay gombok kezelése (már hívódtak a handle_event-jei)
                     if self.fejlesztes_mod and self.selected_upgrade_tower:
-                        if self.upgrade_button.is_hovered:
+                        # Az overlay-n BÁRMILYEN kattintás fejleszti a tornyot (ha nem a deselect gomb)
+                        if self.deselect_button.is_hovered:
+                            self.selected_upgrade_tower = None
+                            continue
+                        else:
+                            # Az overlay-n bárhová kattintva fejleszti a tornyot
                             upgrade_cost = self.selected_upgrade_tower.get_upgrade_cost()
                             if upgrade_cost > 0:
                                 if self.penz >= upgrade_cost:
@@ -155,9 +160,6 @@ class Game:
                                     print(f"Nincs elég pénz! Szükséges: {upgrade_cost}, Van: {self.penz}")
                             else:
                                 print("A torony már maximum szinten van!")
-                            continue
-                        elif self.deselect_button.is_hovered:
-                            self.selected_upgrade_tower = None
                             continue
 
                     # Ha a torony képválasztó aktív, kezeld a kattintást
