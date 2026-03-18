@@ -212,10 +212,12 @@ class Game:
                             and 0 <= gx < self.palya.oszlopok
                             and self.palya.adatok[gy][gx] == 2
                         ):
-                            # Torony megkeresése
+                            # Torony megkeresése - 2x2 terület kezelése
                             tower_at_pos = None
                             for tower in self.palya.tornyok:
-                                if tower.gx == gx and tower.gy == gy:
+                                # Torony 2x2 cellát foglal, ellenőrizni az összes cellát
+                                if (tower.gx <= gx < tower.gx + tower.size and 
+                                    tower.gy <= gy < tower.gy + tower.size):
                                     tower_at_pos = tower
                                     break
                             
