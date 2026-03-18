@@ -24,6 +24,23 @@ class Button:
         pygame.draw.rect(felulet, szin, self.rect, border_radius=10)
         pygame.draw.rect(felulet, FEHER, self.rect, 2, border_radius=10)
 
-        text_surf = self.font.render(szoveg, True, FEHER)
+        # Automatikus betűméretezés/kivágás, hogy szöveg ne tolódjon ki a gombból
+        max_text_width = self.rect.width - 12
+        font_size = 22
+        font = pygame.font.SysFont("Arial", font_size, bold=True)
+        text_surf = font.render(szoveg, True, FEHER)
+
+        while text_surf.get_width() > max_text_width and font_size > 10:
+            font_size -= 1
+            font = pygame.font.SysFont("Arial", font_size, bold=True)
+            text_surf = font.render(szoveg, True, FEHER)
+
+        if text_surf.get_width() > max_text_width:
+            # Vágjuk a szöveget: végén pontozottság, hogy beleférjen
+            trimmed = szoveg
+            while trimmed and font.render(trimmed + "...", True, FEHER).get_width() > max_text_width:
+                trimmed = trimmed[:-1]
+            text_surf = font.render(trimmed + "...", True, FEHER)
+
         text_rect = text_surf.get_rect(center=self.rect.center)
         felulet.blit(text_surf, text_rect)

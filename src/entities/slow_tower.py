@@ -10,6 +10,10 @@ class SlowTower(Tower):
         self.tuzelesi_sebesseg = 800  # 0.8 másodperc
         self.hatotav = 3.0
         self.nev = "Lassító Torony"
+
+        self.base_sebzes = self.sebzes
+        self.base_hatotav = self.hatotav
+        self.base_tuzelesi_sebesseg = self.tuzelesi_sebesseg
     
     def _get_image_type(self) -> str:
         return "slow"
