@@ -19,6 +19,9 @@ from src.entities.slow_tower import SlowTower
 
 
 class Palya:
+    # A bázis csempéjére ráhelyezendő textúra gyorsítótára
+    _base_cover_img: pygame.Surface | None = None
+
     def __init__(self) -> None:
         self.oszlopok: int = len(MAZE[0])
         self.sorok: int = len(MAZE)
@@ -35,6 +38,16 @@ class Palya:
         # Offset a térkép középre pozicionálásához
         self.offset_x = (SZELESSEG - self.map_width) // 2
         self.offset_y = (MAGASSAG - self.map_height) // 2
+
+        # Bázis borító kép betöltése (csak egyszer)
+        if Palya._base_cover_img is None:
+            try:
+                img = pygame.image.load("assets/images/base_cover.png").convert_alpha()
+                Palya._base_cover_img = pygame.transform.scale(img, (RACS_MERET, RACS_MERET))
+            except Exception as e:
+                print(f"Hiba a base_cover.png betöltésekor: {e}")
+
+        self.base_cover_img = Palya._base_cover_img
 
     def koordinata_szamitas(self, pos: tuple[int, int]) -> tuple[int, int]:
         x, y = pos
@@ -251,6 +264,13 @@ egyezik a blokkéval, azt is eltávolítjuk.
                         magassag - 2,
                     )
                     pygame.draw.rect(felulet, szin, rect)
+
+                    # Bázisra ráhelyezett borító kép
+                    if self.adatok[r][c] == 5 and self.base_cover_img is not None:
+                        felulet.blit(
+                            self.base_cover_img,
+                            (c * RACS_MERET + self.offset_x, r * RACS_MERET + self.offset_y),
+                        )
 
     def _rajzol_torony_keppel(
         self, felulet: pygame.Surface, c: int, r: int, szelesseg: int, magassag: int
