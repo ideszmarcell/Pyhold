@@ -9,7 +9,7 @@ class BossEnemy(Enemy):
 
     def __init__(self, path: list[tuple[int, int]], wave: int = 1):
         # A boss nagyobb és erősebb, wave szerint skálázódik
-        hp = 180 + wave * 30
+        hp = 360 + wave * 30
         speed = 0.8
         radius = 22
         color = (150, 0, 150)
