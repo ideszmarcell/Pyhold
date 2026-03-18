@@ -45,6 +45,13 @@ class Tower:
         self.nev: str = "Torony"
 
         self.utolso_loves: int = 0
+        
+        # Fejleszthetőség
+        self.level: int = 1
+        self.max_level: int = 5
+        self.base_sebzes: int = self.sebzes
+        self.base_hatotav: float = self.hatotav
+        self.base_tuzelesi_sebesseg: int = self.tuzelesi_sebesseg
 
     def _get_image_type(self) -> str:
         """Visszaadja a torony típusát - felülírható leszármazottakban."""
@@ -120,3 +127,26 @@ class Tower:
 
         pygame.draw.rect(ablak, (255, 0, 0), (bar_x, bar_y, bar_width, bar_height))
         pygame.draw.rect(ablak, (0, 255, 0), (bar_x, bar_y, bar_width * hp_ratio, bar_height))
+
+    def fejlesztes(self) -> bool:
+        """Fejleszti a tornyot: növeli a sebzést, hatótávot és lövési sebességet. Max 5 szint."""
+        if self.level >= self.max_level:
+            return False
+        
+        self.level += 1
+        # +20% sebzés fejlesztésenként
+        self.sebzes = int(self.base_sebzes * (1 + 0.2 * (self.level - 1)))
+        # +15% hatótáv fejlesztésenként
+        self.hatotav = self.base_hatotav * (1 + 0.15 * (self.level - 1))
+        # -10% lövési idő (gyorsabb lövés) fejlesztésenként
+        self.tuzelesi_sebesseg = int(self.base_tuzelesi_sebesseg * (1 - 0.1 * (self.level - 1)))
+        print(f"{self.nev} ({self.gx}, {self.gy}) fejlesztve: Level {self.level}/{self.max_level}")
+        print(f"  Sebzés: {self.sebzes}, Hatótáv: {self.hatotav:.1f}, Lövési sebesség: {self.tuzelesi_sebesseg}ms")
+        return True
+
+    def get_upgrade_cost(self) -> int:
+        """Visszaadja a következő fejlesztés költségét."""
+        if self.level >= self.max_level:
+            return 0
+        # Az alapár + 50 * szint
+        return 80 + (50 * self.level)
