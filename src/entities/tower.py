@@ -148,5 +148,5 @@ class Tower:
         """Visszaadja a következő fejlesztés költségét."""
         if self.level >= self.max_level:
             return 0
-        # Az alapár + 50 * szint
-        return 80 + (50 * self.level)
+        # Fix 50 pénz fejlesztésenként
+        return 50
