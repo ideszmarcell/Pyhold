@@ -137,6 +137,24 @@ class Game:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
+                    # Először ellenőrizzük az overlay gombok (upgrade/deselect)
+                    if self.fejlesztes_mod and self.selected_upgrade_tower:
+                        if self.upgrade_button.handle_event(event):
+                            upgrade_cost = self.selected_upgrade_tower.get_upgrade_cost()
+                            if upgrade_cost > 0:
+                                if self.penz >= upgrade_cost:
+                                    self.penz -= upgrade_cost
+                                    self.selected_upgrade_tower.fejlesztes()
+                                    print(f"Torony fejlesztve! Szint: {self.selected_upgrade_tower.level}")
+                                else:
+                                    print(f"Nincs elég pénz! Szükséges: {upgrade_cost}, Van: {self.penz}")
+                            else:
+                                print("A torony már maximum szinten van!")
+                            continue
+                        elif self.deselect_button.handle_event(event):
+                            self.selected_upgrade_tower = None
+                            continue
+
                     # Ha a torony képválasztó aktív, kezeld a kattintást
                     if self.tower_selector.active:
                         selected_image = self.tower_selector.handle_click(event.pos)
@@ -155,21 +173,6 @@ class Game:
                                 self.tornya_mod = False
                             else:
                                 print("Nincs elég pénz a torony megvásárlásához!")
-                    # Fejlesztés gombok kezelése (upgrade és deselect)
-                    elif self.fejlesztes_mod and self.selected_upgrade_tower:
-                        if self.upgrade_button.handle_event(event):
-                            upgrade_cost = self.selected_upgrade_tower.get_upgrade_cost()
-                            if upgrade_cost > 0:
-                                if self.penz >= upgrade_cost:
-                                    self.penz -= upgrade_cost
-                                    self.selected_upgrade_tower.fejlesztes()
-                                    print(f"Torony fejlesztve! Szint: {self.selected_upgrade_tower.level}")
-                                else:
-                                    print(f"Nincs elég pénz! Szükséges: {upgrade_cost}, Van: {self.penz}")
-                            else:
-                                print("A torony már maximum szinten van!")
-                        elif self.deselect_button.handle_event(event):
-                            self.selected_upgrade_tower = None
 
                     # Torony kiválasztása (tornyok módban)
                     elif (
