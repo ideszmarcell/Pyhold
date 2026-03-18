@@ -98,6 +98,11 @@ class Game:
             if event.type == pygame.QUIT:
                 self.futo = False
 
+            # Az overlay gombok handle_event-jét minden event-re meghívjuk
+            if self.fejlesztes_mod and self.selected_upgrade_tower:
+                self.upgrade_button.handle_event(event)
+                self.deselect_button.handle_event(event)
+
             if self.game_over_screen.active:
                 action = self.game_over_screen.handle_event(event)
                 if action == "restart":
@@ -137,9 +142,9 @@ class Game:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    # Először ellenőrizzük az overlay gombok (upgrade/deselect)
+                    # Az overlay gombok kezelése (már hívódtak a handle_event-jei)
                     if self.fejlesztes_mod and self.selected_upgrade_tower:
-                        if self.upgrade_button.handle_event(event):
+                        if self.upgrade_button.is_hovered:
                             upgrade_cost = self.selected_upgrade_tower.get_upgrade_cost()
                             if upgrade_cost > 0:
                                 if self.penz >= upgrade_cost:
@@ -151,7 +156,7 @@ class Game:
                             else:
                                 print("A torony már maximum szinten van!")
                             continue
-                        elif self.deselect_button.handle_event(event):
+                        elif self.deselect_button.is_hovered:
                             self.selected_upgrade_tower = None
                             continue
 
