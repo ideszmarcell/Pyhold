@@ -7,6 +7,8 @@ from settings import (
     ZOLD,
     FEHER,
     MAZE,
+    SZELESSEG,
+    MAGASSAG,
 )
 from src.entities.tower import Tower
 from src.entities.arc_tower import ArcTower
@@ -25,9 +27,20 @@ class Palya:
         self.tower_images: dict[tuple[int, int], str] = {}
         # Torony objektumok tárolása
         self.tornyok: list[Tower] = []
+        
+        # Térkép mérete pixelben
+        self.map_width = self.oszlopok * RACS_MERET
+        self.map_height = self.sorok * RACS_MERET
+        
+        # Offset a térkép középre pozicionálásához
+        self.offset_x = (SZELESSEG - self.map_width) // 2
+        self.offset_y = (MAGASSAG - self.map_height) // 2
 
     def koordinata_szamitas(self, pos: tuple[int, int]) -> tuple[int, int]:
         x, y = pos
+        # Adjustjuk az offset-et
+        x -= self.offset_x
+        y -= self.offset_y
         return x // RACS_MERET, y // RACS_MERET
 
     def _get_tower_block_top_left(self, r: int, c: int) -> tuple[int, int] | None:
@@ -174,9 +187,9 @@ egyezik a blokkéval, azt is eltávolítjuk.
 
     def _rajzol_vonalak(self, felulet: pygame.Surface) -> None:
         for x in range(0, self.oszlopok * RACS_MERET + 1, RACS_MERET):
-            pygame.draw.line(felulet, SZURKE, (x, 0), (x, self.sorok * RACS_MERET))
+            pygame.draw.line(felulet, SZURKE, (x + self.offset_x, self.offset_y), (x + self.offset_x, self.sorok * RACS_MERET + self.offset_y))
         for y in range(0, self.sorok * RACS_MERET + 1, RACS_MERET):
-            pygame.draw.line(felulet, SZURKE, (0, y), (self.oszlopok * RACS_MERET, y))
+            pygame.draw.line(felulet, SZURKE, (self.offset_x, y + self.offset_y), (self.oszlopok * RACS_MERET + self.offset_x, y + self.offset_y))
 
     def _rajzol_epuletek(self, felulet: pygame.Surface) -> None:
         rajzolt_tornyok: set[tuple[int, int]] = set()
@@ -227,13 +240,13 @@ egyezik a blokkéval, azt is eltávolítjuk.
                 if szin:
                     # Rajzolás
                     rect = pygame.Rect(
-                        c * RACS_MERET, r * RACS_MERET, szelesseg, magassag
+                        c * RACS_MERET + self.offset_x, r * RACS_MERET + self.offset_y, szelesseg, magassag
                     )
                     pygame.draw.rect(felulet, szin, rect)
 
                     rect = (
-                        c * RACS_MERET + 1,
-                        r * RACS_MERET + 1,
+                        c * RACS_MERET + 1 + self.offset_x,
+                        r * RACS_MERET + 1 + self.offset_y,
                         szelesseg - 2,
                         magassag - 2,
                     )
@@ -252,7 +265,7 @@ egyezik a blokkéval, azt is eltávolítjuk.
                 # Méretezd a képet, hogy foglalkozzon a 2x2 mérettel
                 img = Tower._images_cache[image_type]
                 scaled_img = pygame.transform.scale(img, (szelesseg - 8, magassag - 8))
-                felulet.blit(scaled_img, (c * RACS_MERET + 4, r * RACS_MERET + 4))
+                felulet.blit(scaled_img, (c * RACS_MERET + 4 + self.offset_x, r * RACS_MERET + 4 + self.offset_y))
             except Exception as e:
                 print(f"Hiba a torony képének rajzolásánál: {e}")
                 self._rajzol_torony_alapertelmezett(felulet, c, r, szelesseg, magassag)
@@ -264,12 +277,12 @@ egyezik a blokkéval, azt is eltávolítjuk.
         self, felulet: pygame.Surface, c: int, r: int, szelesseg: int, magassag: int
     ) -> None:
         """Az alapértelmezett torony ábra (zöld négyzet)."""
-        rect = pygame.Rect(c * RACS_MERET, r * RACS_MERET, szelesseg, magassag)
+        rect = pygame.Rect(c * RACS_MERET + self.offset_x, r * RACS_MERET + self.offset_y, szelesseg, magassag)
         pygame.draw.rect(felulet, ZOLD, rect)
 
         rect_inner = (
-            c * RACS_MERET + 1,
-            r * RACS_MERET + 1,
+            c * RACS_MERET + 1 + self.offset_x,
+            r * RACS_MERET + 1 + self.offset_y,
             szelesseg - 2,
             magassag - 2,
         )

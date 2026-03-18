@@ -90,10 +90,10 @@ class Tower:
         print(f"{self.nev} ({self.gx}, {self.gy}) sérült: -{damage} HP, hátralévő: {self.hp}")
         return self.hp == 0
 
-    def rajzol(self, ablak: pygame.Surface) -> None:
+    def rajzol(self, ablak: pygame.Surface, offset_x: int = 0, offset_y: int = 0) -> None:
         """Kirajzolja a torony képét és a HP-sávot."""
-        px = self.gx * RACS_MERET + 4
-        py = self.gy * RACS_MERET + 4
+        px = self.gx * RACS_MERET + 4 + offset_x
+        py = self.gy * RACS_MERET + 4 + offset_y
 
         img_width = self.size * RACS_MERET - 8
         img_height = self.size * RACS_MERET - 8
@@ -107,8 +107,9 @@ class Tower:
             rect = (px, py, img_width, img_height)
             pygame.draw.rect(ablak, NARANCS, rect, border_radius=6)
             # Fehér kör a közepén
-            kozep = self._get_pixel_kozep()
-            pygame.draw.circle(ablak, FEHER, kozep, RACS_MERET // 5)
+            kozep_x = self.gx * RACS_MERET + (self.size * RACS_MERET) // 2 + offset_x
+            kozep_y = self.gy * RACS_MERET + (self.size * RACS_MERET) // 2 + offset_y
+            pygame.draw.circle(ablak, FEHER, (kozep_x, kozep_y), RACS_MERET // 5)
 
         # Életerő sáv
         bar_width = img_width

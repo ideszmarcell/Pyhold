@@ -50,7 +50,7 @@ class BossEnemy(Enemy):
             if destroyed:
                 print("Boss elpusztította a tornyot!")
 
-    def draw_shape(self, surface):
+    def draw_shape(self, surface, offset_x=0, offset_y=0):
         # Nagyobb kör, vastagabb kerettel
-        pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.radius)
-        pygame.draw.circle(surface, (255, 255, 0), (int(self.x), int(self.y)), self.radius, 3)
+        pygame.draw.circle(surface, self.color, (int(self.x + offset_x), int(self.y + offset_y)), self.radius)
+        pygame.draw.circle(surface, (255, 255, 0), (int(self.x + offset_x), int(self.y + offset_y)), self.radius, 3)

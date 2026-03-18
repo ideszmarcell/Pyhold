@@ -228,11 +228,11 @@ class Game:
 
         # Tornyok rajzolása (HP sávval együtt)
         for torony in self.palya.tornyok:
-            torony.rajzol(self.ablak)
+            torony.rajzol(self.ablak, self.palya.offset_x, self.palya.offset_y)
 
         # Ellenségek rajzolása
         for e in self.ellensegek[:]:
-            e.draw(self.ablak)
+            e.draw(self.ablak, self.palya.offset_x, self.palya.offset_y)
 
         # Pénz kijelzése
         penz_surf = self.font.render(f"Pénz: {self.penz}", True, (255, 255, 255))
