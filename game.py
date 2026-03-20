@@ -34,15 +34,15 @@ class Game:
         self.tower_selector = TowerSelector(Tower.TOWER_IMAGES, SZELESSEG, MAGASSAG)
 
         # A gomb helye és mérete
-        self.hullam_gomb = Button(SZELESSEG - 190, 10, 180, 45)
+        self.hullam_gomb = Button(SZELESSEG - 200, 10, 190, 45)
         self.wave_inditas_gomb = Button(
-            SZELESSEG - 190, 60, 180, 45
+            SZELESSEG - 200, 60, 190, 45
         )  # Wave indítása (auto mode)
-        self.tornya_gomb = Button(SZELESSEG - 190, 110, 180, 45)  # Tornyok gomb
+        self.tornya_gomb = Button(SZELESSEG - 200, 110, 190, 45)  # Tornyok gomb
         self.fejlesztes_gomb = Button(
-            SZELESSEG - 190, 160, 180, 45
+            SZELESSEG - 200, 160, 190, 45
         )  # Fejlesztések gomb
-        self.menu_gomb = Button(SZELESSEG - 190, 210, 180, 45)  # Menü gomb
+        self.menu_gomb = Button(SZELESSEG - 200, 210, 190, 45)  # Menü gomb
 
         self.futo = True
         self.utvonal = self.palya.kinyer_utvonal()
