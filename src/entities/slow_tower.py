@@ -6,7 +6,7 @@ class SlowTower(Tower):
     
     def __init__(self, gx: int, gy: int) -> None:
         super().__init__(gx, gy)
-        self.sebzes = 7
+        self.sebzes = 10  # Megnövelve 7-ről - DPS optimalizálás
         self.tuzelesi_sebesseg = 800  # 0.8 másodperc
         self.hatotav = 3.0
         self.nev = "Lassító Torony"

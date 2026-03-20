@@ -3,8 +3,12 @@ from src.entities.enemy import Enemy, SARGA
 
 class FastEnemy(Enemy):
     def __init__(self, path):
-        # Gyors, kevés élet
-        super().__init__(path, speed=5.0, hp=10, radius=12, color=SARGA)
+        # Gyors, kevés élet (HP +10% nehézítéshez)
+        super().__init__(path, speed=5.0, hp=11, radius=12, color=SARGA)
+
+    def get_reward(self):
+        """Gyors ellenség jutalma: HP // 2 + 2 = 7 pénz (kiegyenlítéshez)"""
+        return self.max_hp // 2 + 2
 
     def draw_shape(self, surface, offset_x=0, offset_y=0):
         # ÚJ: A Gyors ellenség egy rombusz (4 pontból álló sokszög)

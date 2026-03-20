@@ -7,7 +7,7 @@ FEHER = (255, 255, 255)
 KEK = (0, 102, 204)
 NARANCS = (255, 140, 0) 
 AR_BANYASZ = 50
-AR_TORONY = 100
+AR_TORONY = 75  # Csökkentve 100-ról - az economy kiegyensúlyozásához
 
 
 MAZE = [

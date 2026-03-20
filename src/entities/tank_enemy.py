@@ -3,8 +3,12 @@ from src.entities.enemy import Enemy, LILA
 
 class TankEnemy(Enemy):
     def __init__(self, path):
-        # Lassú, sok élet
-        super().__init__(path, speed=1.5, hp=60, radius=20, color=LILA)
+        # Lassú, sok élet (HP +15% nehézítéshez)
+        super().__init__(path, speed=1.5, hp=69, radius=20, color=LILA)
+
+    def get_reward(self):
+        """Tank ellenség jutalma: HP // 2 + 10 = 44 pénz (erősebb HP-val)"""
+        return self.max_hp // 2 + 10
 
     def draw_shape(self, surface, offset_x=0, offset_y=0):
         # ÚJ: A Tank egy négyzet ("kocka")

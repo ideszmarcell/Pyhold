@@ -21,6 +21,7 @@ class Enemy:
         self.color = color
         
         self.reached_end = False
+        self.reward_given = False  # Nyomon követi, hogy már kapott-e jutalmat
         
         # Lassító effekt
         self.slow_effect = 0  # 0-100 közötti érték: hány % -kal lassabb
@@ -67,3 +68,7 @@ class Enemy:
         pygame.draw.rect(surface, PIROS, (self.x - hp_bar_width/2 + offset_x, self.y - self.radius - 12 + offset_y, hp_bar_width, hp_bar_height))
         if self.hp > 0:
             pygame.draw.rect(surface, ZOLD, (self.x - hp_bar_width/2 + offset_x, self.y - self.radius - 12 + offset_y, hp_bar_width * hp_ratio, hp_bar_height))
+    
+    def get_reward(self):
+        """Alapértelmezett jutalmazási érték (HP alapján)"""
+        return max(1, self.max_hp // 5)  # Kb. 1 pénz per 5 HP
