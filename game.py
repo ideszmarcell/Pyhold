@@ -1,5 +1,10 @@
 import pygame
-from settings import SZELESSEG, MAGASSAG, MAZE, AR_TORONY  # Itt a MAZE-t használd a pályához
+from settings import (
+    SZELESSEG,
+    MAGASSAG,
+    MAZE,
+    AR_TORONY,
+)  # Itt a MAZE-t használd a pályához
 from map import Palya
 
 # Az új elérési út a mappaszerkezeted alapján:
@@ -13,6 +18,7 @@ from src.ui.tower_selector import TowerSelector
 from button import Button
 from game_over import GameOverScreen
 from start_screen import StartScreen
+
 
 class Game:
     def __init__(self) -> None:
@@ -29,9 +35,14 @@ class Game:
 
         # A gomb helye és mérete
         self.hullam_gomb = Button(SZELESSEG - 190, 10, 180, 45)
-        self.tornya_gomb = Button(SZELESSEG - 190, 60, 180, 45)  # Tornyok gomb
-        self.fejlesztes_gomb = Button(SZELESSEG - 190, 110, 180, 45)  # Fejlesztések gomb
-        self.menu_gomb = Button(SZELESSEG - 190, 160, 180, 45)  # Menü gomb
+        self.wave_inditas_gomb = Button(
+            SZELESSEG - 190, 60, 180, 45
+        )  # Wave indítása (auto mode)
+        self.tornya_gomb = Button(SZELESSEG - 190, 110, 180, 45)  # Tornyok gomb
+        self.fejlesztes_gomb = Button(
+            SZELESSEG - 190, 160, 180, 45
+        )  # Fejlesztések gomb
+        self.menu_gomb = Button(SZELESSEG - 190, 210, 180, 45)  # Menü gomb
 
         self.futo = True
         self.utvonal = self.palya.kinyer_utvonal()
@@ -48,11 +59,11 @@ class Game:
             "shock": AR_TORONY,
             "slow": AR_TORONY,
         }
-        
+
         # Fejlesztés módja
         self.fejlesztes_mod = False
         self.selected_upgrade_tower = None
-        
+
         # Fejlesztés gomb és vissza gomb
         self.upgrade_button = Button(SZELESSEG // 2 - 90, MAGASSAG // 2 + 40, 180, 45)
         self.deselect_button = Button(SZELESSEG // 2 - 90, MAGASSAG // 2 + 100, 180, 45)
@@ -68,6 +79,16 @@ class Game:
         self.boss_reward: int = 150
         self.boss_defeated_wave: int = 0
 
+        # Wave selection és scaling system
+        self.wave_select_active = False
+        self.enemy_health_multiplier = 1.0
+        self.enemy_count_multiplier = 1.0
+        self.boss_damage_multiplier = 1.0
+        self.wave_button_rects = []
+        self.wave_close_rect = None
+        self.continuous_waves = False  # Auto wave mode
+        self.next_wave_auto_time = 0  # Mikor indítson új wavét automatikusan
+
         # Menü & játékállapot
         self.menu_active = False
         self.font = pygame.font.SysFont("Arial", 22, bold=True)
@@ -77,27 +98,75 @@ class Game:
         self.quit_button = Button(SZELESSEG // 2 - 90, MAGASSAG // 2 + 40, 180, 45)
 
         self.tornya_mod = False  # Tornyok módja
-        
+
         self.eletek = 4  # 4 ellenség érhet be
         self.game_over_screen = GameOverScreen()
         self.start_screen = StartScreen()
 
     def indit_hullam(self):
-        # Nem indíthatunk új hullámot, amíg a boss életben van.
-        if self.boss is not None:
+        """Megnyitja a wave select menüt."""
+        if self.boss is not None or self.hullam_fut:
+            return
+        self.wave_select_active = True
+
+    def _calculate_scaling_for_wave(self, wave: int) -> tuple[float, float, float]:
+        """Kiszámítja a scaling szorzókat az adott wave száma alapján."""
+        level = (wave - 1) // 5 + 1  # Szint: 1-5
+        health_mult = 1.0 + (level - 1) * 0.15
+        count_mult = 1.0 + (level - 1) * 0.1
+        boss_dmg_mult = 1.0 + (level - 1) * 0.2
+        return health_mult, count_mult, boss_dmg_mult
+
+    def _apply_scaling_for_wave(self, wave: int) -> None:
+        """Alkalmazza a scaling szorzókat az adott wave-hez."""
+        health_mult, count_mult, boss_dmg_mult = self._calculate_scaling_for_wave(wave)
+        self.enemy_health_multiplier = health_mult
+        self.enemy_count_multiplier = count_mult
+        self.boss_damage_multiplier = boss_dmg_mult
+        level = (wave - 1) // 5 + 1
+        print(
+            f"Wave {wave} (Szint {level}) scaling: HP: {health_mult:.2f}x, Szám: {count_mult:.2f}x, Boss DMG: {boss_dmg_mult:.2f}x"
+        )
+
+    def select_wave(self, wave_number: int) -> None:
+        """Kiválasztott wave-t indítja el."""
+        if self.boss is not None or self.hullam_fut or len(self.ellensegek) > 0:
             return
 
-        if not self.hullam_fut and len(self.ellensegek) == 0:
-            self.hullam_szam += 1
-            # Első hullám könnyebb, utána lineárisan nő: 8 + (hullám-1) * 4
-            # Wave 1: 8, Wave 2: 12, Wave 3: 16, Wave 4: 20, stb.
-            self.maradek_ellenseg = 8 + (self.hullam_szam - 1) * 4
-            self.hullam_fut = True
+        self.hullam_szam = wave_number
+        self.wave_select_active = False
+        self._apply_scaling_for_wave(wave_number)
+
+        # Boss wave ellenőrzés
+        is_boss_wave = wave_number % 5 == 0
+        if is_boss_wave:
+            self.maradek_ellenseg = 0
+        else:
+            base_count = 8 + (wave_number * 3)
+            self.maradek_ellenseg = int(base_count * self.enemy_count_multiplier)
+
+        self.hullam_fut = True
+
+    def start_continuous_waves(self, starting_wave: int = 1) -> None:
+        """Auto wave mód bekapcsolása a megadott wave-től."""
+        if self.continuous_waves:
+            return  # Már fut
+        self.continuous_waves = True
+        self.hullam_szam = (
+            starting_wave - 1
+        )  # Hogy a következő select_wave automatikusan indul
+        self.next_wave_auto_time = pygame.time.get_ticks() + 1000
+
+    def stop_continuous_waves(self) -> None:
+        """Auto wave mód kikapcsolása."""
+        self.continuous_waves = False
+        self.next_wave_auto_time = 0
 
     def _click_on_ui_buttons(self, pos: tuple[int, int]) -> bool:
         # Véletlen kattintás elkerülése a főképernyős toronyválasztásnál
         return (
             self.hullam_gomb.rect.collidepoint(pos)
+            or self.wave_inditas_gomb.rect.collidepoint(pos)
             or self.tornya_gomb.rect.collidepoint(pos)
             or self.fejlesztes_gomb.rect.collidepoint(pos)
             or self.menu_gomb.rect.collidepoint(pos)
@@ -107,7 +176,6 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.futo = False
-
 
             if self.start_screen.active:
                 action = self.start_screen.handle_event(event)
@@ -122,19 +190,19 @@ class Game:
                 self.upgrade_button.handle_event(event)
                 self.deselect_button.handle_event(event)
 
-
             if self.game_over_screen.active:
                 action = self.game_over_screen.handle_event(event)
                 if action == "restart":
                     self.__init__()  # Játék teljes újraindítása
                 elif action == "quit":
                     self.futo = False
-                continue  
+                continue
 
             if self.menu_gomb.handle_event(event):
                 self.menu_active = not self.menu_active
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.wave_select_active = False
                 self.menu_active = not self.menu_active
                 self.selected_upgrade_tower = None
                 self.fejlesztes_mod = False
@@ -150,19 +218,45 @@ class Game:
             if self.hullam_gomb.handle_event(event):
                 self.indit_hullam()
 
+            if self.wave_inditas_gomb.handle_event(event):
+                # Wave indítása (automata) gomb
+                if not self.continuous_waves:
+                    self.start_continuous_waves(1)  # 1-es wavéről indít
+                else:
+                    self.stop_continuous_waves()
+
             if self.tornya_gomb.handle_event(event):
                 self.tornya_mod = not self.tornya_mod  # Tornyok mód ki-be kapcsolása
                 if not self.tornya_mod:
                     self.tower_selector.hide()
 
             if self.fejlesztes_gomb.handle_event(event):
-                self.fejlesztes_mod = not self.fejlesztes_mod  # Fejlesztések mód ki-be kapcsolása
+                self.fejlesztes_mod = (
+                    not self.fejlesztes_mod
+                )  # Fejlesztések mód ki-be kapcsolása
                 if not self.fejlesztes_mod:
                     self.selected_upgrade_tower = None
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     mouse_pos = event.pos
+
+                    # Wave select menü kezelése
+                    if self.wave_select_active:
+                        if self.wave_close_rect and self.wave_close_rect.collidepoint(
+                            mouse_pos
+                        ):
+                            self.wave_select_active = False
+                            continue
+
+                        for btn_rect, wave_num in self.wave_button_rects:
+                            if btn_rect.collidepoint(mouse_pos):
+                                if self.continuous_waves:
+                                    self.stop_continuous_waves()
+                                self.select_wave(wave_num)
+                                break
+                        continue
+
                     # Ha UI gombok egyike alatt kattintunk, ne csináljunk további terepi eseményt
                     if self._click_on_ui_buttons(mouse_pos):
                         continue
@@ -174,14 +268,20 @@ class Game:
                             continue
 
                         if self.upgrade_button.is_hovered:
-                            upgrade_cost = self.selected_upgrade_tower.get_upgrade_cost()
+                            upgrade_cost = (
+                                self.selected_upgrade_tower.get_upgrade_cost()
+                            )
                             if upgrade_cost > 0:
                                 if self.penz >= upgrade_cost:
                                     self.penz -= upgrade_cost
                                     self.selected_upgrade_tower.fejlesztes()
-                                    print(f"Torony fejlesztve! Szint: {self.selected_upgrade_tower.level}")
+                                    print(
+                                        f"Torony fejlesztve! Szint: {self.selected_upgrade_tower.level}"
+                                    )
                                 else:
-                                    print(f"Nincs elég pénz! Szükséges: {upgrade_cost}, Van: {self.penz}")
+                                    print(
+                                        f"Nincs elég pénz! Szükséges: {upgrade_cost}, Van: {self.penz}"
+                                    )
                             else:
                                 print("A torony már maximum szinten van!")
                             continue
@@ -209,10 +309,7 @@ class Game:
                                 print("Nincs elég pénz a torony megvásárlásához!")
 
                     # Torony kiválasztása (tornyok módban)
-                    elif (
-                        self.tornya_mod
-                        and not self._click_on_ui_buttons(event.pos)
-                    ):
+                    elif self.tornya_mod and not self._click_on_ui_buttons(event.pos):
                         gx, gy = self.palya.koordinata_szamitas(event.pos)
                         if (
                             0 <= gy < self.palya.sorok
@@ -224,9 +321,8 @@ class Game:
                             else:
                                 self.tornya_mod = False
                     # Torony kiválasztása fejlesztéshez
-                    elif (
-                        self.fejlesztes_mod
-                        and not self._click_on_ui_buttons(event.pos)
+                    elif self.fejlesztes_mod and not self._click_on_ui_buttons(
+                        event.pos
                     ):
                         gx, gy = self.palya.koordinata_szamitas(event.pos)
                         if (
@@ -238,11 +334,13 @@ class Game:
                             tower_at_pos = None
                             for tower in self.palya.tornyok:
                                 # Torony 2x2 cellát foglal, ellenőrizni az összes cellát
-                                if (tower.gx <= gx < tower.gx + tower.size and 
-                                    tower.gy <= gy < tower.gy + tower.size):
+                                if (
+                                    tower.gx <= gx < tower.gx + tower.size
+                                    and tower.gy <= gy < tower.gy + tower.size
+                                ):
                                     tower_at_pos = tower
                                     break
-                            
+
                             if tower_at_pos:
                                 self.selected_upgrade_tower = tower_at_pos
                             else:
@@ -252,7 +350,7 @@ class Game:
     def update(self):
         if self.start_screen.active or self.menu_active or self.game_over_screen.active:
             return
-            
+
         # ... itt folytatódik a meglévő kódod ...
 
         # Ellenségek beküldése
@@ -264,8 +362,12 @@ class Game:
                     enemy_types = [BasicEnemy, FastEnemy, TankEnemy, ArmoredEnemy]
                     enemy_index = (self.maradek_ellenseg % 5) % len(enemy_types)
                     selected_enemy = enemy_types[enemy_index]
-                    
-                    self.ellensegek.append(selected_enemy(self.utvonal))
+
+                    enemy = selected_enemy(self.utvonal)
+                    # Scaling alkalmazása
+                    enemy.hp = int(enemy.hp * self.enemy_health_multiplier)
+                    enemy.max_hp = int(enemy.max_hp * self.enemy_health_multiplier)
+                    self.ellensegek.append(enemy)
                 self.maradek_ellenseg -= 1
                 self.utolso_spawn = most
 
@@ -273,9 +375,12 @@ class Game:
         for torony in self.palya.tornyok:
             torony.celpont_kereses(self.ellensegek)
 
-        # Boss spawnolása egy kis várakozás után (wave vége után)
+        # Boss spawnolása egy kis várakozás után (csak boss wavéken)
+        is_boss_wave = self.hullam_szam > 0 and self.hullam_szam % 5 == 0
+
         if (
-            not self.hullam_fut
+            is_boss_wave
+            and not self.hullam_fut
             and self.maradek_ellenseg == 0
             and len(self.ellensegek) == 0
             and self.hullam_szam > 0
@@ -287,10 +392,18 @@ class Game:
                 print(f"Boss előtt: +100 pénz (összesen: {self.penz})")
 
                 self.boss_pending = True
-                self.boss_spawn_ready_time = pygame.time.get_ticks() + self.boss_spawn_delay_ms
+                self.boss_spawn_ready_time = (
+                    pygame.time.get_ticks() + self.boss_spawn_delay_ms
+                )
 
         if self.boss_pending and pygame.time.get_ticks() >= self.boss_spawn_ready_time:
             self.boss = BossEnemy(self.utvonal, wave=self.hullam_szam)
+            # Scaling alkalmazása a bossra
+            self.boss.hp = int(self.boss.hp * self.enemy_health_multiplier)
+            self.boss.max_hp = int(self.boss.max_hp * self.enemy_health_multiplier)
+            self.boss.attack_damage = int(
+                self.boss.attack_damage * self.boss_damage_multiplier
+            )
             self.ellensegek.append(self.boss)
             self.boss_spawned_wave = self.hullam_szam
             self.boss_pending = False
@@ -313,15 +426,17 @@ class Game:
         alive_enemies = []
         for e in self.ellensegek:
             # Ha az ellenség halott és még nem kaptunk jutalmat
-            if e.hp <= 0 and not getattr(e, 'reward_given', False):
+            if e.hp <= 0 and not getattr(e, "reward_given", False):
                 reward = e.get_reward()
                 self.penz += reward
                 e.reward_given = True
-                print(f"+{reward} pénz ({e.__class__.__name__}lől) - Összesen: {self.penz}")
+                print(
+                    f"+{reward} pénz ({e.__class__.__name__}lől) - Összesen: {self.penz}"
+                )
             # Megtartjuk az élő ellenségeket és azokat, akik már átértek a végig
             if e.hp > 0 and not getattr(e, "reached_end", False):
                 alive_enemies.append(e)
-        
+
         self.ellensegek = alive_enemies
 
         # Ha a boss legyőzött, reseteljük a referenciát
@@ -337,12 +452,109 @@ class Game:
         if self.maradek_ellenseg == 0 and len(self.ellensegek) == 0:
             self.hullam_fut = False
 
+        # Auto wave mód: automatikusan szalad a következő wave-re
+        if (
+            self.continuous_waves
+            and not self.hullam_fut
+            and self.boss is None
+            and len(self.ellensegek) == 0
+            and self.maradek_ellenseg == 0
+        ):
+            if pygame.time.get_ticks() >= self.next_wave_auto_time:
+                next_wave = self.hullam_szam + 1
+                if next_wave <= 25:  # Max 25 wave
+                    self.select_wave(next_wave)
+                    self.next_wave_auto_time = (
+                        pygame.time.get_ticks() + 500
+                    )  # 0.5s delay
+                else:
+                    self.continuous_waves = False  # Vége
+
+    def _draw_wave_select_menu(self) -> None:
+        """Rajzol egy wave selection menüt."""
+        # Háttér overlay
+        overlay = pygame.Surface((SZELESSEG, MAGASSAG), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 200))
+        self.ablak.blit(overlay, (0, 0))
+
+        # Menü panel háttér
+        panel_w, panel_h = 900, 550
+        panel_x = (SZELESSEG - panel_w) // 2
+        panel_y = (MAGASSAG - panel_h) // 2
+        panel_rect = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
+
+        pygame.draw.rect(self.ablak, (20, 20, 40), panel_rect)
+        pygame.draw.rect(self.ablak, (100, 150, 255), panel_rect, 3, border_radius=10)
+
+        # Cím
+        title_font = pygame.font.SysFont("Arial", 32, bold=True)
+        title = title_font.render("HULLÁM KIVÁLASZTÁSA", True, (255, 255, 255))
+        title_rect = title.get_rect(center=(SZELESSEG // 2, panel_y + 25))
+        self.ablak.blit(title, title_rect)
+
+        # 5 szint, mindegyik 5 wave gomb-mal
+        small_font = pygame.font.SysFont("Arial", 14, bold=True)
+        button_w, button_h = 70, 40
+        spacing_x, spacing_y = 90, 80
+        start_x = panel_x + 50
+        start_y = panel_y + 70
+
+        self.wave_button_rects = []
+
+        for level in range(1, 6):
+            # Szint címsor
+            level_text = small_font.render(f"Szint {level}", True, (200, 255, 100))
+            self.ablak.blit(
+                level_text, (start_x - 10, start_y + (level - 1) * spacing_y - 25)
+            )
+
+            for wave_in_level in range(1, 6):
+                wave_num = (level - 1) * 5 + wave_in_level
+                x = start_x + (wave_in_level - 1) * spacing_x
+                y = start_y + (level - 1) * spacing_y
+
+                # Boss wave zöld, normál sárga
+                is_boss = wave_num % 5 == 0
+                btn_color = (50, 200, 50) if is_boss else (200, 200, 50)
+                text_color = (255, 255, 255)
+
+                # Gomb rajzolása
+                btn_rect = pygame.Rect(x, y, button_w, button_h)
+                pygame.draw.rect(self.ablak, btn_color, btn_rect)
+                pygame.draw.rect(self.ablak, (255, 255, 255), btn_rect, 2)
+
+                # Wave szám szövege
+                btn_text = "Boss" if is_boss else f"W{wave_num}"
+                wave_text = small_font.render(btn_text, True, text_color)
+                wave_text_rect = wave_text.get_rect(center=btn_rect.center)
+                self.ablak.blit(wave_text, wave_text_rect)
+
+                # Hover effekt
+                if btn_rect.collidepoint(pygame.mouse.get_pos()):
+                    pygame.draw.rect(self.ablak, (255, 255, 100), btn_rect, 3)
+
+                self.wave_button_rects.append((btn_rect, wave_num))
+
+        # Bezárás gomb
+        close_btn_rect = pygame.Rect(panel_x + panel_w - 60, panel_y + 10, 50, 35)
+        pygame.draw.rect(self.ablak, (200, 50, 50), close_btn_rect)
+        pygame.draw.rect(self.ablak, (255, 255, 255), close_btn_rect, 2)
+        close_text = small_font.render("X", True, (255, 255, 255))
+        self.ablak.blit(
+            close_text, (close_btn_rect.centerx - 7, close_btn_rect.centery - 7)
+        )
+
+        if close_btn_rect.collidepoint(pygame.mouse.get_pos()):
+            pygame.draw.rect(self.ablak, (255, 100, 100), close_btn_rect, 3)
+
+        self.wave_close_rect = close_btn_rect
+
     def rajzol(self) -> None:
         if self.start_screen.active:
             self.start_screen.draw(self.ablak)
             pygame.display.update()
             return
-        
+
         self.palya.rajzol(self.ablak)
 
         # Tornyok rajzolása (HP sávval együtt)
@@ -358,7 +570,9 @@ class Game:
         hud_bg = pygame.Surface((hud_w, hud_h), pygame.SRCALPHA)
         hud_bg.fill((0, 0, 0, 180))
         self.ablak.blit(hud_bg, (8, 8))
-        pygame.draw.rect(self.ablak, (255, 255, 255), (8, 8, hud_w, hud_h), 2, border_radius=8)
+        pygame.draw.rect(
+            self.ablak, (255, 255, 255), (8, 8, hud_w, hud_h), 2, border_radius=8
+        )
 
         penz_surf = self.font.render(f"Pénz: {self.penz}", True, (255, 255, 255))
         self.ablak.blit(penz_surf, (20, 16))
@@ -382,8 +596,19 @@ class Game:
         wave_surf = self.font.render(wave_status, True, (200, 200, 255))
         self.ablak.blit(wave_surf, (20, 72))
 
+        # Auto wave mód status
+        if self.continuous_waves:
+            auto_status = "Auto: BE ▶"
+            auto_surf = self.font.render(auto_status, True, (100, 255, 100))
+            self.ablak.blit(auto_surf, (20, 100))
+
         # Gombok feliratai fix rövid formában (nem csúsznak szét): hullám indítás + mód kapcsoló
-        self.hullam_gomb.draw(self.ablak, "Hullám indítása", hullam_active)
+        self.hullam_gomb.draw(self.ablak, "Hullám váltása", hullam_active)
+
+        # Wave indítása (auto mode) gomb
+        wave_inditas_text = "Wave: BE ▶" if self.continuous_waves else "Wave indítása"
+        wave_inditas_active = not self.hullam_fut and self.boss is None
+        self.wave_inditas_gomb.draw(self.ablak, wave_inditas_text, wave_inditas_active)
 
         tornya_szoveg = "Tornyok: BE" if self.tornya_mod else "Tornyok: KI"
         self.tornya_gomb.draw(self.ablak, tornya_szoveg, True)
@@ -408,7 +633,7 @@ class Game:
 
             self.resume_button.draw(self.ablak, "Folytatás", True)
             self.quit_button.draw(self.ablak, "Kilépés", True)
-            
+
         if self.game_over_screen.active:
             self.game_over_screen.draw(self.ablak, self.hullam_szam)
 
@@ -427,11 +652,17 @@ class Game:
                 panel_h,
             )
             pygame.draw.rect(self.ablak, (20, 20, 30, 220), panel_rect)
-            pygame.draw.rect(self.ablak, (200, 200, 255), panel_rect, 2, border_radius=10)
+            pygame.draw.rect(
+                self.ablak, (200, 200, 255), panel_rect, 2, border_radius=10
+            )
 
             # Torony információk
             tower = self.selected_upgrade_tower
-            title = self.font.render(f"{tower.nev} - Level {tower.level}/{tower.max_level}", True, (255, 255, 255))
+            title = self.font.render(
+                f"{tower.nev} - Level {tower.level}/{tower.max_level}",
+                True,
+                (255, 255, 255),
+            )
             title_rect = title.get_rect(center=(SZELESSEG // 2, panel_rect.top + 40))
             self.ablak.blit(title, title_rect)
 
@@ -440,22 +671,36 @@ class Game:
             info_y = panel_rect.top + 80
             line_spacing = 28
 
-            sebzes_text = stats_font.render(f"Sebzés: {tower.sebzes}", True, (255, 200, 0))
-            hatotav_text = stats_font.render(f"Hatótáv: {tower.hatotav:.1f}", True, (255, 200, 0))
-            speed_text = stats_font.render(f"Lövési sebesség: {tower.tuzelesi_sebesseg}ms", True, (255, 200, 0))
+            sebzes_text = stats_font.render(
+                f"Sebzés: {tower.sebzes}", True, (255, 200, 0)
+            )
+            hatotav_text = stats_font.render(
+                f"Hatótáv: {tower.hatotav:.1f}", True, (255, 200, 0)
+            )
+            speed_text = stats_font.render(
+                f"Lövési sebesség: {tower.tuzelesi_sebesseg}ms", True, (255, 200, 0)
+            )
 
             self.ablak.blit(sebzes_text, (panel_rect.left + 30, info_y))
             self.ablak.blit(hatotav_text, (panel_rect.left + 30, info_y + line_spacing))
-            self.ablak.blit(speed_text, (panel_rect.left + 30, info_y + 2 * line_spacing))
+            self.ablak.blit(
+                speed_text, (panel_rect.left + 30, info_y + 2 * line_spacing)
+            )
 
             # Fejlesztés költsége
             upgrade_cost = tower.get_upgrade_cost()
             if upgrade_cost > 0:
-                cost_text = self.font.render(f"Fejlesztés költsége: {upgrade_cost} pénz", True, (255, 100, 100))
+                cost_text = self.font.render(
+                    f"Fejlesztés költsége: {upgrade_cost} pénz", True, (255, 100, 100)
+                )
             else:
-                cost_text = self.font.render("Maximum szint elérve!", True, (100, 255, 100))
+                cost_text = self.font.render(
+                    "Maximum szint elérve!", True, (100, 255, 100)
+                )
 
-            cost_rect = cost_text.get_rect(center=(SZELESSEG // 2, panel_rect.top + 190))
+            cost_rect = cost_text.get_rect(
+                center=(SZELESSEG // 2, panel_rect.top + 190)
+            )
             self.ablak.blit(cost_text, cost_rect)
 
             # Gombok
@@ -470,6 +715,10 @@ class Game:
                 self.upgrade_button.draw(self.ablak, "Nincs", False)
 
             self.deselect_button.draw(self.ablak, "Vissza", True)
+
+        # Wave select menü rajzolása
+        if self.wave_select_active:
+            self._draw_wave_select_menu()
 
         pygame.display.update()
 
