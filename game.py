@@ -42,7 +42,7 @@ class Game:
         self.hullam_fut = False
 
         # Gazdaság
-        self.penz = 200
+        self.penz = 175  # Csökkentve 200-ról - nehézítés
         self.tower_costs = {
             "arc": AR_TORONY,
             "shock": AR_TORONY,
@@ -89,9 +89,9 @@ class Game:
 
         if not self.hullam_fut and len(self.ellensegek) == 0:
             self.hullam_szam += 1
-            # Növekvő számú ellenség: 8 + (hullám * 3)
-            # Wave 1: 11, Wave 2: 14, Wave 3: 17, stb.
-            self.maradek_ellenseg = 8 + (self.hullam_szam * 3)
+            # Első hullám könnyebb, utána lineárisan nő: 8 + (hullám-1) * 4
+            # Wave 1: 8, Wave 2: 12, Wave 3: 16, Wave 4: 20, stb.
+            self.maradek_ellenseg = 8 + (self.hullam_szam - 1) * 4
             self.hullam_fut = True
 
     def _click_on_ui_buttons(self, pos: tuple[int, int]) -> bool:
@@ -309,18 +309,23 @@ class Game:
                 if self.eletek <= 0:
                     self.game_over_screen.active = True
 
-        self.ellensegek[:] = [
-            e
-            for e in self.ellensegek
-            if e.hp > 0 and not getattr(e, "reached_end", False)
-        ]
+        # Ellenségeket szűrjük és jutalmazunk a halottakért
+        alive_enemies = []
+        for e in self.ellensegek:
+            # Ha az ellenség halott és még nem kaptunk jutalmat
+            if e.hp <= 0 and not getattr(e, 'reward_given', False):
+                reward = e.get_reward()
+                self.penz += reward
+                e.reward_given = True
+                print(f"+{reward} pénz ({e.__class__.__name__}lől) - Összesen: {self.penz}")
+            # Megtartjuk az élő ellenségeket és azokat, akik már átértek a végig
+            if e.hp > 0 and not getattr(e, "reached_end", False):
+                alive_enemies.append(e)
+        
+        self.ellensegek = alive_enemies
 
-        # Ha a boss legyőzött, adj jutalmat és reseteljük a referenciát
+        # Ha a boss legyőzött, reseteljük a referenciát
         if self.boss is not None and self.boss not in self.ellensegek:
-            if self.hullam_szam > self.boss_defeated_wave:
-                self.penz += self.boss_reward
-                self.boss_defeated_wave = self.hullam_szam
-                print(f"Boss legyőzve: +{self.boss_reward} pénz (összesen: {self.penz})")
             self.boss = None
 
         # Halott tornyok eltávolítása
