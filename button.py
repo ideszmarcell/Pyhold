@@ -1,6 +1,7 @@
 import pygame
 from settings import FEHER, KEK, SZURKE
 
+
 class Button:
     def __init__(self, x, y, szelesseg, magassag):
         self.rect = pygame.Rect(x, y, szelesseg, magassag)
@@ -19,8 +20,11 @@ class Button:
 
     def draw(self, felulet, szoveg, aktiv):
         # Ha nem aktív (fut a wave), akkor szürke, egyébként kék/világoskék
-        szin = KEK if aktiv and not self.is_hovered else (0, 150, 255) if aktiv else (60, 60, 70)
-        
+        if aktiv:
+            szin = (0, 150, 255) if self.is_hovered else KEK
+        else:
+            szin = (120, 120, 160) if self.is_hovered else (90, 90, 130)
+
         pygame.draw.rect(felulet, szin, self.rect, border_radius=10)
         pygame.draw.rect(felulet, FEHER, self.rect, 2, border_radius=10)
 
@@ -38,7 +42,11 @@ class Button:
         if text_surf.get_width() > max_text_width:
             # Vágjuk a szöveget: végén pontozottság, hogy beleférjen
             trimmed = szoveg
-            while trimmed and font.render(trimmed + "...", True, FEHER).get_width() > max_text_width:
+            while (
+                trimmed
+                and font.render(trimmed + "...", True, FEHER).get_width()
+                > max_text_width
+            ):
                 trimmed = trimmed[:-1]
             text_surf = font.render(trimmed + "...", True, FEHER)
 
