@@ -21,6 +21,10 @@ from src.entities.slow_tower import SlowTower
 class Palya:
     # A bázis csempéjére ráhelyezendő textúra gyorsítótára
     _base_cover_img: pygame.Surface | None = None
+    # Az út csempéjére ráhelyezendő textúra gyorsítótára
+    _path_img: pygame.Surface | None = None
+    # A fal csempéjére ráhelyezendő textúra gyorsítótára
+    _wall_img: pygame.Surface | None = None
 
     def __init__(self) -> None:
         self.oszlopok: int = len(MAZE[0])
@@ -30,11 +34,11 @@ class Palya:
         self.tower_images: dict[tuple[int, int], str] = {}
         # Torony objektumok tárolása
         self.tornyok: list[Tower] = []
-        
+
         # Térkép mérete pixelben
         self.map_width = self.oszlopok * RACS_MERET
         self.map_height = self.sorok * RACS_MERET
-        
+
         # Offset a térkép középre pozicionálásához
         self.offset_x = (SZELESSEG - self.map_width) // 2
         self.offset_y = (MAGASSAG - self.map_height) // 2
@@ -43,11 +47,34 @@ class Palya:
         if Palya._base_cover_img is None:
             try:
                 img = pygame.image.load("assets/images/base_cover.png").convert_alpha()
-                Palya._base_cover_img = pygame.transform.scale(img, (RACS_MERET, RACS_MERET))
+                Palya._base_cover_img = pygame.transform.scale(
+                    img, (RACS_MERET, RACS_MERET)
+                )
             except Exception as e:
                 print(f"Hiba a base_cover.png betöltésekor: {e}")
 
         self.base_cover_img = Palya._base_cover_img
+
+        # Út kép betöltése (csak egyszer)
+        if Palya._path_img is None:
+            try:
+                img = pygame.image.load("assets/images/path.jpg").convert()
+                Palya._path_img = pygame.transform.scale(img, (RACS_MERET, RACS_MERET))
+            except Exception as e:
+                print(f"Hiba a path.jpg betöltésekor: {e}")
+
+        self.path_img = Palya._path_img
+
+        # Fal kép betöltése (csak egyszer)
+        if Palya._wall_img is None:
+            try:
+                img = pygame.image.load("assets/images/wall.jpg").convert()
+                img = pygame.transform.flip(img, False, True)  # Függőleges tükrözés
+                Palya._wall_img = pygame.transform.scale(img, (RACS_MERET, RACS_MERET))
+            except Exception as e:
+                print(f"Hiba a wall.jpg betöltésekor: {e}")
+
+        self.wall_img = Palya._wall_img
 
     def koordinata_szamitas(self, pos: tuple[int, int]) -> tuple[int, int]:
         x, y = pos
@@ -92,10 +119,10 @@ class Palya:
         tower_block = self._get_tower_block_top_left(r, c)
         if tower_block is None:
             return False
-        
+
         # Torony képének beállítása
         self.tower_images[tower_block] = image_type
-        
+
         # Torony objektum keresése vagy létrehozása
         # A torony a bal felső sarknál helyezkedi el (tower_block)
         torony = None
@@ -103,7 +130,7 @@ class Palya:
             if t.gx == tower_block[1] and t.gy == tower_block[0]:
                 torony = t
                 break
-        
+
         # Ha nem létezik, hozz létre a megfelelő típussal
         if torony is None:
             # Pilóta Tower Factory - megfelelő osztályt hoz létre
@@ -115,7 +142,7 @@ class Palya:
                 torony = SlowTower(tower_block[1], tower_block[0])
             else:
                 torony = ArcTower(tower_block[1], tower_block[0])  # Alapértelmezett
-            
+
             self.tornyok.append(torony)
         else:
             # Ha már létezik, cseréld le az új típusúra
@@ -128,9 +155,9 @@ class Palya:
                 torony = SlowTower(tower_block[1], tower_block[0])
             else:
                 torony = ArcTower(tower_block[1], tower_block[0])
-            
+
             self.tornyok.append(torony)
-        
+
         return True
 
     def remove_tower(self, tower: Tower) -> None:
@@ -140,7 +167,11 @@ class Palya:
             for dc in range(tower.size):
                 r = tower.gy + dr
                 c = tower.gx + dc
-                if 0 <= r < self.sorok and 0 <= c < self.oszlopok and self.adatok[r][c] == 2:
+                if (
+                    0 <= r < self.sorok
+                    and 0 <= c < self.oszlopok
+                    and self.adatok[r][c] == 2
+                ):
                     self.adatok[r][c] = 0
 
         # Távolítsuk el a torony objektumot
@@ -158,8 +189,8 @@ class Palya:
     def afectar_tornya_blokk(self, pos: tuple[int, int]) -> bool:
         """Hatást gyakorol az összekapcsolt toronyblokkra.
 
-        Ha van olyan torony objektum a listában, amelynek bal felső koordinátája
-egyezik a blokkéval, azt is eltávolítjuk.
+                Ha van olyan torony objektum a listában, amelynek bal felső koordinátája
+        egyezik a blokkéval, azt is eltávolítjuk.
         """
         gx, gy = self.koordinata_szamitas(pos)
 
@@ -200,9 +231,19 @@ egyezik a blokkéval, azt is eltávolítjuk.
 
     def _rajzol_vonalak(self, felulet: pygame.Surface) -> None:
         for x in range(0, self.oszlopok * RACS_MERET + 1, RACS_MERET):
-            pygame.draw.line(felulet, SZURKE, (x + self.offset_x, self.offset_y), (x + self.offset_x, self.sorok * RACS_MERET + self.offset_y))
+            pygame.draw.line(
+                felulet,
+                SZURKE,
+                (x + self.offset_x, self.offset_y),
+                (x + self.offset_x, self.sorok * RACS_MERET + self.offset_y),
+            )
         for y in range(0, self.sorok * RACS_MERET + 1, RACS_MERET):
-            pygame.draw.line(felulet, SZURKE, (self.offset_x, y + self.offset_y), (self.oszlopok * RACS_MERET + self.offset_x, y + self.offset_y))
+            pygame.draw.line(
+                felulet,
+                SZURKE,
+                (self.offset_x, y + self.offset_y),
+                (self.oszlopok * RACS_MERET + self.offset_x, y + self.offset_y),
+            )
 
     def _rajzol_epuletek(self, felulet: pygame.Surface) -> None:
         rajzolt_tornyok: set[tuple[int, int]] = set()
@@ -246,6 +287,8 @@ egyezik a blokkéval, azt is eltávolítjuk.
                     szin = FEHER
                 elif self.adatok[r][c] == 5:  # Végpont (Bázis)
                     szin = (255, 50, 50)
+                elif self.adatok[r][c] == 0:  # Út
+                    szin = SZURKE
                 else:
                     # BIZTONSÁGI HÁLÓ: Ha ismeretlen szám van a pályán, legyen rikító lila!
                     szin = (255, 0, 255)
@@ -253,7 +296,10 @@ egyezik a blokkéval, azt is eltávolítjuk.
                 if szin:
                     # Rajzolás
                     rect = pygame.Rect(
-                        c * RACS_MERET + self.offset_x, r * RACS_MERET + self.offset_y, szelesseg, magassag
+                        c * RACS_MERET + self.offset_x,
+                        r * RACS_MERET + self.offset_y,
+                        szelesseg,
+                        magassag,
                     )
                     pygame.draw.rect(felulet, szin, rect)
 
@@ -269,7 +315,30 @@ egyezik a blokkéval, azt is eltávolítjuk.
                     if self.adatok[r][c] == 5 and self.base_cover_img is not None:
                         felulet.blit(
                             self.base_cover_img,
-                            (c * RACS_MERET + self.offset_x, r * RACS_MERET + self.offset_y),
+                            (
+                                c * RACS_MERET + self.offset_x,
+                                r * RACS_MERET + self.offset_y,
+                            ),
+                        )
+
+                    # Útra ráhelyezett kép
+                    if self.adatok[r][c] == 0 and self.path_img is not None:
+                        felulet.blit(
+                            self.path_img,
+                            (
+                                c * RACS_MERET + self.offset_x,
+                                r * RACS_MERET + self.offset_y,
+                            ),
+                        )
+
+                    # Falra (3) ráhelyezett kép
+                    if self.adatok[r][c] == 3 and self.wall_img is not None:
+                        felulet.blit(
+                            self.wall_img,
+                            (
+                                c * RACS_MERET + self.offset_x,
+                                r * RACS_MERET + self.offset_y,
+                            ),
                         )
 
     def _rajzol_torony_keppel(
@@ -285,7 +354,13 @@ egyezik a blokkéval, azt is eltávolítjuk.
                 # Méretezd a képet, hogy foglalkozzon a 2x2 mérettel
                 img = Tower._images_cache[image_type]
                 scaled_img = pygame.transform.scale(img, (szelesseg - 8, magassag - 8))
-                felulet.blit(scaled_img, (c * RACS_MERET + 4 + self.offset_x, r * RACS_MERET + 4 + self.offset_y))
+                felulet.blit(
+                    scaled_img,
+                    (
+                        c * RACS_MERET + 4 + self.offset_x,
+                        r * RACS_MERET + 4 + self.offset_y,
+                    ),
+                )
             except Exception as e:
                 print(f"Hiba a torony képének rajzolásánál: {e}")
                 self._rajzol_torony_alapertelmezett(felulet, c, r, szelesseg, magassag)
@@ -297,7 +372,12 @@ egyezik a blokkéval, azt is eltávolítjuk.
         self, felulet: pygame.Surface, c: int, r: int, szelesseg: int, magassag: int
     ) -> None:
         """Az alapértelmezett torony ábra (zöld négyzet)."""
-        rect = pygame.Rect(c * RACS_MERET + self.offset_x, r * RACS_MERET + self.offset_y, szelesseg, magassag)
+        rect = pygame.Rect(
+            c * RACS_MERET + self.offset_x,
+            r * RACS_MERET + self.offset_y,
+            szelesseg,
+            magassag,
+        )
         pygame.draw.rect(felulet, ZOLD, rect)
 
         rect_inner = (
@@ -311,7 +391,6 @@ egyezik a blokkéval, azt is eltávolítjuk.
     def rajzol(self, felulet: pygame.Surface) -> None:
         felulet.fill(FEKETE)
         self._rajzol_epuletek(felulet)
-        self._rajzol_vonalak(felulet)
 
     def kinyer_utvonal(self) -> list[tuple[int, int]]:
         """Kikeresi a pixel-alapú útvonalat a 6-ostól az 5-ösig, figyelve a kereszteződésekre."""
