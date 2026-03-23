@@ -23,6 +23,9 @@ from start_screen import StartScreen
 class Game:
     def __init__(self) -> None:
         pygame.init()
+        pygame.mixer.init()
+        pygame.mixer.music.load("assets/sounds/pyhold_muzsika.mp3")
+        pygame.mixer.music.play(-1)  # Loop indefinitely
         self.ablak = pygame.display.set_mode((SZELESSEG, MAGASSAG))
         self.ora = pygame.time.Clock()
         self.palya = Palya()
@@ -94,8 +97,11 @@ class Game:
         self.font = pygame.font.SysFont("Arial", 22, bold=True)
 
         # Menü gombok (pause menu)
-        self.resume_button = Button(SZELESSEG // 2 - 90, MAGASSAG // 2 - 20, 180, 45)
-        self.quit_button = Button(SZELESSEG // 2 - 90, MAGASSAG // 2 + 40, 180, 45)
+        self.resume_button = Button(SZELESSEG // 2 - 90, MAGASSAG // 2 - 70, 180, 45)
+        self.quit_button = Button(SZELESSEG // 2 - 90, MAGASSAG // 2 - 10, 180, 45)
+        self.mute_button = Button(SZELESSEG // 2 - 90, MAGASSAG // 2 + 50, 180, 45)
+
+        self.muted = False
 
         self.tornya_mod = False  # Tornyok módja
 
@@ -172,6 +178,13 @@ class Game:
             or self.menu_gomb.rect.collidepoint(pos)
         )
 
+    def toggle_mute(self) -> None:
+        if self.muted:
+            pygame.mixer.music.unpause()
+        else:
+            pygame.mixer.music.pause()
+        self.muted = not self.muted
+
     def esemenyek(self) -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -183,6 +196,9 @@ class Game:
                     self.start_screen.active = False
                 elif action == "quit":
                     self.futo = False
+                elif action == "mute":
+                    self.toggle_mute()
+                    self.start_screen.muted = self.muted
                 continue
 
             # Az overlay gombok handle_event-jét minden event-re meghívjuk
@@ -213,6 +229,8 @@ class Game:
                     self.menu_active = False
                 if self.quit_button.handle_event(event):
                     self.futo = False
+                if self.mute_button.handle_event(event):
+                    self.toggle_mute()
                 continue
 
             if self.hullam_gomb.handle_event(event):
@@ -576,8 +594,8 @@ class Game:
 
         penz_surf = self.font.render(f"Pénz: {self.penz}", True, (255, 255, 255))
         self.ablak.blit(penz_surf, (20, 16))
-        elet_szin = (255, 255, 255) if self.eletek > 1 else (255, 50, 50)
-        elet_surf = self.font.render(f"Életek: {max(0, self.eletek)}", True, elet_szin)
+        elet_szin = (255, 100, 100) if self.eletek > 1 else (255, 50, 50)
+        elet_surf = self.font.render("♥" * max(0, self.eletek), True, elet_szin)
         self.ablak.blit(elet_surf, (20, 44))
 
         if self.boss is not None:
@@ -633,6 +651,8 @@ class Game:
 
             self.resume_button.draw(self.ablak, "Folytatás", True)
             self.quit_button.draw(self.ablak, "Kilépés", True)
+            mute_text = "Némítás" if not self.muted else "Hang bekapcsolása"
+            self.mute_button.draw(self.ablak, mute_text, True)
 
         if self.game_over_screen.active:
             self.game_over_screen.draw(self.ablak, self.hullam_szam)
