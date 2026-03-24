@@ -1,13 +1,13 @@
 import pygame
-from src.entities.enemy import Enemy
+from entities.enemy import Enemy
 
-# Új szín az 5. típushoz: Kék
-VILAGOSKEK = (100, 149, 237)
+
+LIGHT_BLUE = (100, 149, 237)
 
 class ArmoredEnemy(Enemy):
     def __init__(self, path):
-        # Páncélzott ellenség: közepes sebesség, nagy élet (HP +15% nehézítéshez)
-        super().__init__(path, speed=2.0, hp=21, radius=17, color=VILAGOSKEK)
+
+        super().__init__(path, speed=2.0, hp=21, radius=17, color=LIGHT_BLUE)
 
     def get_reward(self):
         """Páncélzott ellenség jutalma: HP // 2 + 2 = 11 pénz (kiegyenlítéshez)"""

@@ -1,4 +1,4 @@
-from src.entities.tower import Tower
+from entities.tower import Tower
 
 
 class SlowTower(Tower):
@@ -6,22 +6,22 @@ class SlowTower(Tower):
     
     def __init__(self, gx: int, gy: int) -> None:
         super().__init__(gx, gy)
-        self.sebzes = 10  # Megnövelve 7-ről - DPS optimalizálás
-        self.tuzelesi_sebesseg = 800  # 0.8 másodperc
-        self.hatotav = 3.0
-        self.nev = "Lassító Torony"
+        self.damage = 10  # Megnövelve 7-ről - DPS optimalizálás
+        self.fire_speed = 800  # 0.8 másodperc
+        self.range = 3.0
+        self.name = "Lassító Torony"
 
-        self.base_sebzes = self.sebzes
-        self.base_hatotav = self.hatotav
-        self.base_tuzelesi_sebesseg = self.tuzelesi_sebesseg
+        self.base_damage = self.damage
+        self.base_range = self.range
+        self.base_fire_speed = self.fire_speed
     
     def _get_image_type(self) -> str:
         return "slow"
     
-    def tuzel(self, celpont, most: int) -> None:
+    def shoot(self, target, now: int) -> None:
         """Sebzi az ellenséget és alkalmazz lassító effektet."""
-        super().tuzel(celpont, most)
-        # Lassító effekt: 40%-kal lelassít 2 másodpercig
-        celpont.slow_effect = 40
-        celpont.slow_duration = 2000
-        celpont.slow_start = most
+        super().shoot(target, now)
+
+        target.slow_effect = 40
+        target.slow_duration = 2000
+        target.slow_start = now

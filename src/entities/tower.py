@@ -1,10 +1,10 @@
 import pygame
 import math
-from settings import RACS_MERET, NARANCS, FEHER
+from core.settings import GRID_SIZE, ORANGE, WHITE
 
 
 class Tower:
-    """Alapozó Tower osztály - az összes torony ebből származik."""
+    """Alapozó Tower osztály - az összes tower ebből származik."""
     # Osztályszintű képek gyorsítótár
     _images_cache: dict[str, pygame.Surface] = {}
 
@@ -16,11 +16,11 @@ class Tower:
 
     @classmethod
     def load_images(cls) -> None:
-        """Előbetölti az összes torony képet."""
+        """Előbetölti az összes tower képet."""
         for name, path in cls.TOWER_IMAGES.items():
             try:
                 img = pygame.image.load(path)
-                img = pygame.transform.scale(img, (RACS_MERET - 8, RACS_MERET - 8))
+                img = pygame.transform.scale(img, (GRID_SIZE - 8, GRID_SIZE - 8))
                 cls._images_cache[name] = img
             except Exception as e:
                 print(f"Hiba a {path} betöltésekor: {e}")
@@ -31,117 +31,124 @@ class Tower:
         self.gy: int = gy
         self.image_type: str = self._get_image_type()
 
-        # A torony lényegében 2x2 cellát foglal a pályán
+        # A tower lényegében 2x2 cellát foglal a pályán
         self.size: int = 2
 
-        # Életerő (tornyok mostantól sebezhetőek)
+        # Életerő (towers mostantól sebezhetőek)
         self.max_hp: int = 150
         self.hp: int = self.max_hp
 
         # Absztrakt attribútumok - felülírni kell leszármazottakban
-        self.hatotav: float = 3.0
-        self.sebzes: int = 10
-        self.tuzelesi_sebesseg: int = 1000
-        self.nev: str = "Torony"
+        self.range: float = 3.0
+        self.damage: int = 10
+        self.fire_speed: int = 1000
+        self.name: str = "Torony"
 
-        self.utolso_loves: int = 0
+        self.last_shot: int = 0
         
         # Fejleszthetőség
         self.level: int = 1
         self.max_level: int = 5
-        self.base_sebzes: int = self.sebzes
-        self.base_hatotav: float = self.hatotav
-        self.base_tuzelesi_sebesseg: int = self.tuzelesi_sebesseg
+        self.base_damage: int = self.damage
+        self.base_range: float = self.range
+        self.base_fire_speed: int = self.fire_speed
 
     def _get_image_type(self) -> str:
-        """Visszaadja a torony típusát - felülírható leszármazottakban."""
+        """Visszaadja a tower típusát - felülírható leszármazottakban."""
         return "arc"
 
-    def _get_pixel_kozep(self) -> tuple[int, int]:
-        """Kiszámolja a torony közepének pixel koordinátáit."""
-        # A torony 2x2 cellát foglal, ezért a középpontot ennek megfelelően számoljuk.
-        px = self.gx * RACS_MERET + (self.size * RACS_MERET) // 2
-        py = self.gy * RACS_MERET + (self.size * RACS_MERET) // 2
+    def _get_pixel_center(self) -> tuple[int, int]:
+        """Kiszámolja a tower közepének pixel koordinátáit."""
+        # A tower 2x2 cellát foglal, ezért a középpontot ennek megfelelően számoljuk.
+        px = self.gx * GRID_SIZE + (self.size * GRID_SIZE) // 2
+        py = self.gy * GRID_SIZE + (self.size * GRID_SIZE) // 2
         return px, py
 
-    def celpont_kereses(self, ellensegek: list) -> None:
+    def find_target(self, enemies: list) -> None:
         """Megkeresi a legközelebbi ellenséget a hatótávon belül."""
-        most = pygame.time.get_ticks()
-        if most - self.utolso_loves < self.tuzelesi_sebesseg:
+        now = pygame.time.get_ticks()
+        if now - self.last_shot < self.fire_speed:
             return
 
-        torony_kozep = self._get_pixel_kozep()
+        tower_center = self._get_pixel_center()
 
-        for ellenseg in ellensegek:
-            # Távolság kiszámítása
-            dx = ellenseg.x - torony_kozep[0]
-            dy = ellenseg.y - torony_kozep[1]
-            tavolsag = math.sqrt(dx**2 + dy**2)
+        for enemy in enemies:
 
-            if tavolsag <= self.hatotav * RACS_MERET:
-                self.tuzel(ellenseg, most)
+            dx = enemy.x - tower_center[0]
+            dy = enemy.y - tower_center[1]
+            distance = math.sqrt(dx**2 + dy**2)
+
+            if distance <= self.range * GRID_SIZE:
+                self.shoot(enemy, now)
                 break
 
-    def tuzel(self, celpont, most: int) -> None:
+    def shoot(self, target, now: int) -> None:
         """Sebzi az ellenséget. Felülírható leszármazottakban."""
-        celpont.hp -= self.sebzes
-        self.utolso_loves = most
-        print(f"{self.nev} ({self.gx}, {self.gy}) eltalálta az ellenséget! Sebzés: {self.sebzes}")
+        target.hp -= self.damage
+        self.last_shot = now
+        print(f"{self.name} ({self.gx}, {self.gy}) eltalálta az ellenséget! Sebzés: {self.damage}")
 
     def take_damage(self, damage: int) -> bool:
-        """Sebzi a tornyot. Visszatér True-val, ha a torony megsemmisült."""
+        """Sebzi a tornyot. Visszatér True-val, ha a tower megsemmisült."""
         self.hp -= damage
         if self.hp < 0:
             self.hp = 0
 
-        print(f"{self.nev} ({self.gx}, {self.gy}) sérült: -{damage} HP, hátralévő: {self.hp}")
+        print(f"{self.name} ({self.gx}, {self.gy}) sérült: -{damage} HP, hátralévő: {self.hp}")
         return self.hp == 0
 
-    def rajzol(self, ablak: pygame.Surface, offset_x: int = 0, offset_y: int = 0) -> None:
-        """Kirajzolja a torony képét és a HP-sávot."""
-        px = self.gx * RACS_MERET + 4 + offset_x
-        py = self.gy * RACS_MERET + 4 + offset_y
+    def _draw_fallback_tower(self, surface: pygame.Surface, px: int, py: int, img_width: int, img_height: int, offset_x: int, offset_y: int) -> None:
+        """Fallback rajzolás, ha a kép nincs betöltve."""
+        rect = (px, py, img_width, img_height)
+        pygame.draw.rect(surface, ORANGE, rect, border_radius=6)
+        # Fehér kör a közepén
+        center_x = self.gx * GRID_SIZE + (self.size * GRID_SIZE) // 2 + offset_x
+        center_y = self.gy * GRID_SIZE + (self.size * GRID_SIZE) // 2 + offset_y
+        pygame.draw.circle(surface, WHITE, (center_x, center_y), GRID_SIZE // 5)
 
-        img_width = self.size * RACS_MERET - 8
-        img_height = self.size * RACS_MERET - 8
-
-        if self.image_type in self._images_cache:
-            img = self._images_cache[self.image_type]
-            img = pygame.transform.scale(img, (img_width, img_height))
-            ablak.blit(img, (px, py))
-        else:
-            # Fallback: narancs négyzet
-            rect = (px, py, img_width, img_height)
-            pygame.draw.rect(ablak, NARANCS, rect, border_radius=6)
-            # Fehér kör a közepén
-            kozep_x = self.gx * RACS_MERET + (self.size * RACS_MERET) // 2 + offset_x
-            kozep_y = self.gy * RACS_MERET + (self.size * RACS_MERET) // 2 + offset_y
-            pygame.draw.circle(ablak, FEHER, (kozep_x, kozep_y), RACS_MERET // 5)
-
-        # Életerő sáv
+    def _draw_hp_bar(self, surface: pygame.Surface, px: int, py: int, img_width: int, img_height: int) -> None:
+        """Rajzol egy HP sávot a tower felett."""
         bar_width = img_width
         bar_height = 5
         hp_ratio = self.hp / self.max_hp if self.max_hp > 0 else 0
         bar_x = px
         bar_y = py - bar_height - 2
 
-        pygame.draw.rect(ablak, (255, 0, 0), (bar_x, bar_y, bar_width, bar_height))
-        pygame.draw.rect(ablak, (0, 255, 0), (bar_x, bar_y, bar_width * hp_ratio, bar_height))
+        pygame.draw.rect(surface, (255, 0, 0), (bar_x, bar_y, bar_width, bar_height))
+        pygame.draw.rect(surface, (0, 255, 0), (bar_x, bar_y, bar_width * hp_ratio, bar_height))
 
-    def fejlesztes(self) -> bool:
+    def draw(self, surface: pygame.Surface, offset_x: int = 0, offset_y: int = 0) -> None:
+        """Kirajzolja a tower képét és a HP-sávot."""
+        px = self.gx * GRID_SIZE + 4 + offset_x
+        py = self.gy * GRID_SIZE + 4 + offset_y
+
+        img_width = self.size * GRID_SIZE - 8
+        img_height = self.size * GRID_SIZE - 8
+
+        if self.image_type in self._images_cache:
+            img = self._images_cache[self.image_type]
+            img = pygame.transform.scale(img, (img_width, img_height))
+            surface.blit(img, (px, py))
+        else:
+            self._draw_fallback_tower(surface, px, py, img_width, img_height, offset_x, offset_y)
+
+        # Életerő sáv
+        self._draw_hp_bar(surface, px, py, img_width, img_height)
+
+    def upgrade(self) -> bool:
         """Fejleszti a tornyot: növeli a sebzést, hatótávot és lövési sebességet. Max 5 szint."""
         if self.level >= self.max_level:
             return False
         
         self.level += 1
-        # +20% sebzés fejlesztésenként
-        self.sebzes = int(self.base_sebzes * (1 + 0.2 * (self.level - 1)))
-        # +15% hatótáv fejlesztésenként
-        self.hatotav = self.base_hatotav * (1 + 0.15 * (self.level - 1))
-        # -10% lövési idő (gyorsabb lövés) fejlesztésenként
-        self.tuzelesi_sebesseg = int(self.base_tuzelesi_sebesseg * (1 - 0.1 * (self.level - 1)))
-        print(f"{self.nev} ({self.gx}, {self.gy}) fejlesztve: Level {self.level}/{self.max_level}")
-        print(f"  Sebzés: {self.sebzes}, Hatótáv: {self.hatotav:.1f}, Lövési sebesség: {self.tuzelesi_sebesseg}ms")
+
+        self.damage = int(self.base_damage * (1 + 0.2 * (self.level - 1)))
+
+        self.range = self.base_range * (1 + 0.15 * (self.level - 1))
+
+        self.fire_speed = int(self.base_fire_speed * (1 - 0.1 * (self.level - 1)))
+        print(f"{self.name} ({self.gx}, {self.gy}) fejlesztve: Level {self.level}/{self.max_level}")
+        print(f"  Sebzés: {self.damage}, Hatótáv: {self.range:.1f}, Lövési sebesség: {self.fire_speed}ms")
         return True
 
     def get_upgrade_cost(self) -> int:

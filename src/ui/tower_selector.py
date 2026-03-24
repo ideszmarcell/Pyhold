@@ -1,5 +1,5 @@
 import pygame
-from settings import AR_TORONY, RACS_MERET, FEHER, FEKETE, SZURKE
+from core.settings import TOWER_COST, GRID_SIZE, WHITE, BLACK, DARK_GRAY
 
 
 class TowerSelector:
@@ -12,25 +12,20 @@ class TowerSelector:
         self.screen_width = screen_width
         self.screen_height = screen_height
 
-        # Aktív választó
         self.active = False
         self.tower_gx = None
         self.tower_gy = None
 
-        # UI pozíciók - RACS_MERET alapján
-        self.image_size = RACS_MERET * 2  # Nagyobb kép a választóban
+        self.image_size = GRID_SIZE * 2
         self.spacing = 10
         self.padding = 20
 
-        # Képek betöltése
         self.images: dict[str, pygame.Surface] = {}
-        self.load_images()
+        self.buttons: dict[str, pygame.Rect] = {}
 
-        # Kiszámítja a kezdő y pozíciót (középpontban)
         self.menu_height = self.image_size + self.padding * 2
         self.menu_y = (screen_height - self.menu_height) // 2
 
-        # Kiszámítja a kezdő x pozíciót (középpontban)
         total_width = (
             len(tower_images) * self.image_size
             + (len(tower_images) - 1) * self.spacing
@@ -38,12 +33,10 @@ class TowerSelector:
         )
         self.menu_x = (screen_width - total_width) // 2
 
-        # Gomb pozíciók
-        self.buttons: dict[str, pygame.Rect] = {}
-        self.calculate_button_positions()
+        self.load_images()
 
     def load_images(self) -> None:
-        """Betölti a torony képeket."""
+        """Betölti a tower képeket."""
         for name, path in self.tower_images.items():
             try:
                 img = pygame.image.load(path)
@@ -52,8 +45,6 @@ class TowerSelector:
             except Exception as e:
                 print(f"Hiba a {path} betöltésekor: {e}")
 
-    def calculate_button_positions(self) -> None:
-        """Kiszámítja a gomb pozícióit."""
         x = self.menu_x + self.padding
         y = self.menu_y + self.padding
 
@@ -70,7 +61,7 @@ class TowerSelector:
     def hide(self) -> None:
         """Bezárja a választót."""
         self.active = False
-        # Az koordinátákat meghagyjuk, amíg a show() újra nem hívódik
+
 
     def handle_click(self, pos: tuple[int, int]) -> str | None:
         """
@@ -88,7 +79,6 @@ class TowerSelector:
                 self.hide()
                 return selected
 
-        # Ha klikkelsz az UI-n kívülre, bezárul
         menu_rect = pygame.Rect(
             self.menu_x - 10,
             self.menu_y - 10,
@@ -119,8 +109,8 @@ class TowerSelector:
         )
 
         # Háttér (homályosított)
-        pygame.draw.rect(surface, FEKETE, panel_rect)
-        pygame.draw.rect(surface, SZURKE, panel_rect, 3)
+        pygame.draw.rect(surface, BLACK, panel_rect)
+        pygame.draw.rect(surface, DARK_GRAY, panel_rect, 3)
 
         # Képek kirajzolása
         for name, rect in self.buttons.items():
@@ -128,11 +118,11 @@ class TowerSelector:
                 img = self.images[name]
                 surface.blit(img, rect)
                 # Szegély a kép körül
-                pygame.draw.rect(surface, FEHER, rect, 2)
+                pygame.draw.rect(surface, WHITE, rect, 2)
 
                 # Árkijelzés
-                cost_text = f"{AR_TORONY}"
+                cost_text = f"{TOWER_COST}"
                 font = pygame.font.SysFont("Arial", 18, bold=True)
-                text_surf = font.render(cost_text, True, FEHER)
+                text_surf = font.render(cost_text, True, WHITE)
                 text_rect = text_surf.get_rect(midtop=(rect.centerx, rect.bottom + 4))
                 surface.blit(text_surf, text_rect)

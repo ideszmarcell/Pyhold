@@ -1,10 +1,10 @@
 import pygame
-from src.entities.enemy import Enemy, LILA
+from entities.enemy import Enemy, PURPLE
 
 class TankEnemy(Enemy):
     def __init__(self, path):
-        # Lassú, sok élet (HP +15% nehézítéshez)
-        super().__init__(path, speed=1.5, hp=69, radius=20, color=LILA)
+
+        super().__init__(path, speed=1.5, hp=69, radius=20, color=PURPLE)
 
     def get_reward(self):
         """Tank ellenség jutalma: HP // 2 + 10 = 44 pénz (erősebb HP-val)"""
