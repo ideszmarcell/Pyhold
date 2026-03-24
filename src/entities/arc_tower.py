@@ -1,4 +1,4 @@
-from src.entities.tower import Tower
+from entities.tower import Tower
 
 
 class ArcTower(Tower):
@@ -6,14 +6,14 @@ class ArcTower(Tower):
     
     def __init__(self, gx: int, gy: int) -> None:
         super().__init__(gx, gy)
-        self.sebzes = 16  # Megnövelve 12-ről - DPS kiegyensúlyozás
-        self.tuzelesi_sebesseg = 1500  # 1.5 másodperc
-        self.hatotav = 3.0
-        self.nev = "Íj Torony"
+        self.damage = 16  # Megnövelve 12-ről - DPS kiegyensúlyozás
+        self.fire_speed = 1500  # 1.5 másodperc
+        self.range = 3.0
+        self.name = "Íj Torony"
 
-        self.base_sebzes = self.sebzes
-        self.base_hatotav = self.hatotav
-        self.base_tuzelesi_sebesseg = self.tuzelesi_sebesseg
+        self.base_damage = self.damage
+        self.base_range = self.range
+        self.base_fire_speed = self.fire_speed
     
     def _get_image_type(self) -> str:
         return "arc"

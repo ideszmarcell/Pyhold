@@ -1,4 +1,4 @@
-from src.entities.tower import Tower
+from entities.tower import Tower
 
 
 class ShockTower(Tower):
@@ -6,14 +6,14 @@ class ShockTower(Tower):
     
     def __init__(self, gx: int, gy: int) -> None:
         super().__init__(gx, gy)
-        self.sebzes = 5
-        self.tuzelesi_sebesseg = 500  # 0.5 másodperc
-        self.hatotav = 2.5
-        self.nev = "Sokk Torony"
+        self.damage = 5
+        self.fire_speed = 500  # 0.5 másodperc
+        self.range = 2.5
+        self.name = "Sokk Torony"
 
-        self.base_sebzes = self.sebzes
-        self.base_hatotav = self.hatotav
-        self.base_tuzelesi_sebesseg = self.tuzelesi_sebesseg
+        self.base_damage = self.damage
+        self.base_range = self.range
+        self.base_fire_speed = self.fire_speed
     
     def _get_image_type(self) -> str:
         return "shock"

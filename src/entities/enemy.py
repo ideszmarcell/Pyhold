@@ -1,10 +1,10 @@
 import math
 import pygame
 
-PIROS = (255, 0, 0)
-ZOLD = (0, 255, 0)
-LILA = (128, 0, 128)
-SARGA = (255, 255, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+PURPLE = (128, 0, 128)
+YELLOW = (255, 255, 0)
 
 class Enemy:
     """Ez az általános ellenség osztály, minden ellenség ebből fog származni"""
@@ -65,9 +65,9 @@ class Enemy:
         hp_bar_height = 5
         hp_ratio = self.hp / self.max_hp
         
-        pygame.draw.rect(surface, PIROS, (self.x - hp_bar_width/2 + offset_x, self.y - self.radius - 12 + offset_y, hp_bar_width, hp_bar_height))
+        pygame.draw.rect(surface, RED, (self.x - hp_bar_width/2 + offset_x, self.y - self.radius - 12 + offset_y, hp_bar_width, hp_bar_height))
         if self.hp > 0:
-            pygame.draw.rect(surface, ZOLD, (self.x - hp_bar_width/2 + offset_x, self.y - self.radius - 12 + offset_y, hp_bar_width * hp_ratio, hp_bar_height))
+            pygame.draw.rect(surface, GREEN, (self.x - hp_bar_width/2 + offset_x, self.y - self.radius - 12 + offset_y, hp_bar_width * hp_ratio, hp_bar_height))
     
     def get_reward(self):
         """Alapértelmezett jutalmazási érték (HP alapján)"""

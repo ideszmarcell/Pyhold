@@ -1,10 +1,10 @@
 import pygame
-from src.entities.enemy import Enemy, SARGA
+from entities.enemy import Enemy, YELLOW
 
 class FastEnemy(Enemy):
     def __init__(self, path):
-        # Gyors, kevés élet (HP +10% nehézítéshez)
-        super().__init__(path, speed=5.0, hp=11, radius=12, color=SARGA)
+
+        super().__init__(path, speed=5.0, hp=11, radius=12, color=YELLOW)
 
     def get_reward(self):
         """Gyors ellenség jutalma: HP // 2 + 2 = 7 pénz (kiegyenlítéshez)"""
