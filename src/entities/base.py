@@ -1,30 +1,30 @@
 """Abstract entity base classes."""
-from abc import ABC, abstractmethod
-import pygame
+from abc import ABC ,abstractmethod 
+import pygame 
 
 
-class Drawable(ABC):
+class Drawable (ABC ):
     """Interface for drawable objects."""
-    
-    @abstractmethod
-    def draw(self, surface: pygame.Surface, offset_x: int = 0, offset_y: int = 0) -> None:
+
+    @abstractmethod 
+    def draw (self ,surface :pygame .Surface ,offset_x :int =0 ,offset_y :int =0 )->None :
         """Draw the entity on the surface."""
-        pass
+        pass 
 
 
-class Updatable(ABC):
+class Updatable (ABC ):
     """Interface for objects that update."""
-    
-    @abstractmethod
-    def update(self) -> None:
+
+    @abstractmethod 
+    def update (self )->None :
         """Update entity state."""
-        pass
+        pass 
 
 
-class Damageable(ABC):
+class Damageable (ABC ):
     """Interface for objects that can take damage."""
-    
-    @abstractmethod
-    def take_damage(self, damage: int) -> bool:
+
+    @abstractmethod 
+    def take_damage (self ,damage :int )->bool :
         """Take damage. Returns True if dead."""
-        pass
+        pass 

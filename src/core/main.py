@@ -1,13 +1,13 @@
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import sys 
+import os 
+sys .path .insert (0 ,os .path .dirname (os .path .dirname (os .path .abspath (__file__ ))))
 
-from game.game import Game
+from game .game import Game 
 
-def main():
-    game = Game()
-    game.run()
-    sys.exit()
+def main ():
+    game =Game ()
+    game .run ()
+    sys .exit ()
 
-if __name__ == "__main__":
-    main()
+if __name__ =="__main__":
+    main ()
