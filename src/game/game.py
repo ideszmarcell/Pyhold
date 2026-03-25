@@ -479,6 +479,14 @@ class Game:
         health_surf = self.font.render("♥" * max(0, self.state.lives), True, health_color)
         self.surface.blit(health_surf, (20, 44))
 
+        wave_text = f"Wave: {self.wave_manager.current_wave}" if self.wave_manager.current_wave > 0 else "Wave: 0"
+        wave_surf = self.font.render(wave_text, True, (255, 255, 255))
+        self.surface.blit(wave_surf, (20, 72))
+
+        auto_wave_text = "AUTO WAVE: ON" if self.continuous_waves else "AUTO WAVE: OFF"
+        auto_wave_surf = self.font.render(auto_wave_text, True, (255, 255, 255))
+        self.surface.blit(auto_wave_surf, (20, 98))
+
         if self.state.tower_upgrade_mode and self.selected_upgrade_tower:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 180))
@@ -596,6 +604,9 @@ class Game:
             self.ui.resume_btn.draw(self.surface, "Resume", True)
             self.ui.mute_btn.draw(self.surface, mute_text, True)
             self.ui.quit_btn.draw(self.surface, "Quit", True)
+
+        if self.game_over_screen.active:
+            self.game_over_screen.draw(self.surface, self.wave_manager.current_wave)
 
         pygame.display.update()
 
