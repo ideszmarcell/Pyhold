@@ -7,7 +7,7 @@ class ArcTower(Tower):
     def __init__(self, gx: int, gy: int) -> None:
         super().__init__(gx, gy)
         self.damage = 16  # Megnövelve 12-ről - DPS kiegyensúlyozás
-        self.fire_speed = 1500  # 1.5 másodperc
+        self.fire_speed = 1000  # 1 másodperc
         self.range = 3.0
         self.name = "Íj Torony"
 

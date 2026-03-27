@@ -7,7 +7,7 @@ from entities.slow_tower import SlowTower
 class TowerFactory:
     """Factory for creating tower instances."""
     
-    TOWER_TYPES = {
+    TOWER_TYPES: dict[str, type] = {
         'arc': ArcTower,
         'shock': ShockTower,
         'slow': SlowTower,

@@ -1,26 +1,19 @@
 import pygame
-from core.settings import (
-    SCREEN_WIDTH,
-    SCREEN_HEIGHT,
-    MAZE,
-    TOWER_COST,
-)
+from core.settings import SCREEN_WIDTH, SCREEN_HEIGHT, TOWER_COST
 from game.map import Map
 from entities.basic_enemy import BasicEnemy
 from entities.tank_enemy import TankEnemy
 from entities.fast_enemy import FastEnemy
 from entities.armored_enemy import ArmoredEnemy
 from entities.boss_enemy import BossEnemy
+from entities.enemy import Enemy
 from entities.tower import Tower
 from ui.tower_selector import TowerSelector
-from factories.enemy_factory import EnemyFactory
-from factories.tower_factory import TowerFactory
-from ui.button import Button
 from game.game_over import GameOverScreen
 from ui.start_screen import StartScreen
 from managers.economy_manager import EconomyManager
 from managers.wave_manager import WaveManager
-from managers.game_state import GameStateManager, GameMode
+from managers.game_state import GameStateManager
 from managers.ui_manager import UIManager
 
 
@@ -33,30 +26,30 @@ class Game:
         self.surface = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.clock = pygame.time.Clock()
         self.map = Map()
-        self.economy = EconomyManager(starting_money=175)
+        self.economy = EconomyManager(starting_money=250)
         self.state = GameStateManager()
         self.wave_manager = WaveManager()
         Tower.load_images()
         self.tower_selector = TowerSelector(Tower.TOWER_IMAGES, SCREEN_WIDTH, SCREEN_HEIGHT)
         self.ui = UIManager()
 
-        self.running = True
-        self.path = self.map.extract_path()
-        self.enemies = []
-        self.last_spawn_time = 0
-        self.selected_upgrade_tower = None
+        self.running: bool = True
+        self.path: list[tuple[int, int]] = self.map.extract_path()
+        self.enemies: list[Enemy] = []
+        self.last_spawn_time: int = 0
+        self.selected_upgrade_tower: Tower | None = None
         self.boss: BossEnemy | None = None
         self.boss_spawned_wave: int = 0
         self.boss_pending: bool = False
         self.boss_spawn_delay_ms: int = 2000
         self.boss_spawn_ready_time: int = 0
-        self.boss_reward: int = 150
+        self.boss_reward: int = 175
         self.boss_defeated_wave: int = 0
-        self.wave_select_active = False
-        self.wave_button_rects = []
-        self.wave_close_rect = None
-        self.continuous_waves = False
-        self.next_wave_auto_time = 0
+        self.wave_select_active: bool = False
+        self.wave_button_rects: list[tuple[pygame.Rect, int]] = []
+        self.wave_close_rect: pygame.Rect | None = None
+        self.continuous_waves: bool = False
+        self.next_wave_auto_time: int = 0
 
         self.font = pygame.font.SysFont("Arial", 22, bold=True)
 
@@ -234,11 +227,12 @@ class Game:
                             cost = TOWER_COST
                             if self.economy.can_afford(cost):
                                 self.economy.spend(cost, "Tower purchase")
-                                self.map.set_tower_image(
-                                    self.tower_selector.tower_gy,
-                                    self.tower_selector.tower_gx,
-                                    selected_image,
-                                )
+                                if self.tower_selector.tower_gy is not None and self.tower_selector.tower_gx is not None:
+                                    self.map.set_tower_image(
+                                        self.tower_selector.tower_gy,
+                                        self.tower_selector.tower_gx,
+                                        selected_image,
+                                    )
                                 self.state.tower_building_mode = False
                             else:
                                 print("Not enough money to buy tower!")
@@ -285,12 +279,19 @@ class Game:
             most = pygame.time.get_ticks()
             if most - self.last_spawn_time > 800:
                 if self.path:
-                    enemy_types = [BasicEnemy, FastEnemy, TankEnemy, ArmoredEnemy]
-                    enemy_index = (self.wave_manager.remaining_enemies % 5) % len(enemy_types)
+                    from typing import Callable
+
+                    enemy_types: list[Callable[[list[tuple[int, int]]], Enemy]] = [
+                        BasicEnemy,
+                        FastEnemy,
+                        TankEnemy,
+                        ArmoredEnemy,
+                    ]
+                    enemy_index: int = (self.wave_manager.remaining_enemies % 5) % len(enemy_types)
                     selected_enemy = enemy_types[enemy_index]
 
-                    enemy = selected_enemy(self.path)
-                    health_mult, count_mult, _ = self.wave_manager.get_scaling_info()
+                    enemy: Enemy = selected_enemy(self.path)
+                    health_mult, _, _ = self.wave_manager.get_scaling_info()
                     enemy.hp = int(enemy.hp * health_mult)
                     enemy.max_hp = int(enemy.max_hp * health_mult)
                     self.enemies.append(enemy)
@@ -341,7 +342,7 @@ class Game:
                 if self.state.lose_life():
                     self.game_over_screen.active = True
 
-        alive_enemies = []
+        alive_enemies: list[Enemy] = []
         for e in self.enemies:
             if e.hp <= 0 and not getattr(e, "reward_given", False):
                 reward = e.get_reward()

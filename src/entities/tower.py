@@ -1,6 +1,7 @@
 import pygame
 import math
 from core.settings import GRID_SIZE, ORANGE, WHITE
+from entities.enemy import Enemy
 
 
 class Tower:
@@ -24,6 +25,16 @@ class Tower:
                 cls._images_cache[name] = img
             except Exception as e:
                 print(f"Hiba a {path} betöltésekor: {e}")
+
+    @classmethod
+    def has_image(cls, image_type: str) -> bool:
+        """Visszaadja, hogy van-e betöltött kép ezen típushoz."""
+        return image_type in cls._images_cache
+
+    @classmethod
+    def get_image(cls, image_type: str) -> pygame.Surface | None:
+        """Visszaadja a nevű tower képét, ha van."""
+        return cls._images_cache.get(image_type)
 
     def __init__(self, gx: int, gy: int) -> None:
         """Alapozó konstruktor - felülírható leszármazottakban."""
@@ -64,9 +75,13 @@ class Tower:
         py = self.gy * GRID_SIZE + (self.size * GRID_SIZE) // 2
         return px, py
 
-    def find_target(self, enemies: list) -> None:
+    def get_pixel_center(self) -> tuple[int, int]:
+        """Nyilvános wrapper a pixel középpont lekéréséhez."""
+        return self._get_pixel_center()
+
+    def find_target(self, enemies: list[Enemy]) -> None:
         """Megkeresi a legközelebbi ellenséget a hatótávon belül."""
-        now = pygame.time.get_ticks()
+        now: int = pygame.time.get_ticks()
         if now - self.last_shot < self.fire_speed:
             return
 
@@ -82,9 +97,9 @@ class Tower:
                 self.shoot(enemy, now)
                 break
 
-    def shoot(self, target, now: int) -> None:
+    def shoot(self, target: Enemy, now: int) -> None:
         """Sebzi az ellenséget. Felülírható leszármazottakban."""
-        target.hp -= self.damage
+        target.hp = self.damage
         self.last_shot = now
         print(f"{self.name} ({self.gx}, {self.gy}) eltalálta az ellenséget! Sebzés: {self.damage}")
 

@@ -9,7 +9,7 @@ from entities.boss_enemy import BossEnemy
 class EnemyFactory:
     """Factory for creating enemy instances."""
     
-    ENEMY_TYPES = {
+    ENEMY_TYPES: dict[str, type] = {
         'basic': BasicEnemy,
         'fast': FastEnemy,
         'tank': TankEnemy,
