@@ -348,18 +348,19 @@ class Map:
         image_type = self.get_tower_image(r, c)
 
 
-        if image_type is not None and image_type in Tower._images_cache:
+        if image_type is not None and Tower.has_image(image_type):
             try:
 
-                img = Tower._images_cache[image_type]
-                scaled_img = pygame.transform.scale(img, (width - 8, height - 8))
-                surface.blit(
-                    scaled_img,
-                    (
-                        c * GRID_SIZE + 4 + self.offset_x,
-                        r * GRID_SIZE + 4 + self.offset_y,
-                    ),
-                )
+                img = Tower.get_image(image_type)
+                if img is not None:
+                    scaled_img = pygame.transform.scale(img, (width - 8, height - 8))
+                    surface.blit(
+                        scaled_img,
+                        (
+                            c * GRID_SIZE + 4 + self.offset_x,
+                            r * GRID_SIZE + 4 + self.offset_y,
+                        ),
+                    )
             except Exception as e:
                 print(f"Hiba a tower képének rajzolásánál: {e}")
 

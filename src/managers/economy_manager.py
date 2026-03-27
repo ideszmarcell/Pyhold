@@ -6,7 +6,7 @@ class EconomyManager:
     
     def __init__(self, starting_money: int = 200):
         self.money = starting_money
-        self.transaction_history = []
+        self.transaction_history : list[tuple[int, str]] = []
     
     def can_afford(self, cost: int) -> bool:
         """Check if player can afford something."""

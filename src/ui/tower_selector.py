@@ -12,9 +12,9 @@ class TowerSelector:
         self.screen_width = screen_width
         self.screen_height = screen_height
 
-        self.active = False
-        self.tower_gx = None
-        self.tower_gy = None
+        self.active: bool = False
+        self.tower_gx: int | None = None
+        self.tower_gy: int | None = None
 
         self.image_size = GRID_SIZE * 2
         self.spacing = 10

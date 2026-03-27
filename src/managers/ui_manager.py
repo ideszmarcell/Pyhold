@@ -37,7 +37,7 @@ class UIManager:
         self.wave_buttons = []
         self.wave_close_rect = None
     
-    def get_all_buttons(self) -> list:
+    def get_all_buttons(self) -> list[Button]:
         """Get all game buttons for event handling."""
         return [
             self.select_wave_btn,

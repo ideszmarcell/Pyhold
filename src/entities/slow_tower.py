@@ -1,4 +1,5 @@
 from entities.tower import Tower
+from entities.enemy import Enemy
 
 
 class SlowTower(Tower):
@@ -18,7 +19,7 @@ class SlowTower(Tower):
     def _get_image_type(self) -> str:
         return "slow"
     
-    def shoot(self, target, now: int) -> None:
+    def shoot(self, target: Enemy, now: int) -> None:
         """Sebzi az ellenséget és alkalmazz lassító effektet."""
         super().shoot(target, now)
 
