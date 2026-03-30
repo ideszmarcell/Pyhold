@@ -53,7 +53,7 @@ class Tower:
         self.range: float = 3.0
         self.damage: int = 10
         self.fire_speed: int = 1000
-        self.name: str = "Torony"
+        self.name: str = "Tower"
 
         self.last_shot: int = 0
         
@@ -99,7 +99,7 @@ class Tower:
 
     def shoot(self, target: Enemy, now: int) -> None:
         """Sebzi az ellenséget. Felülírható leszármazottakban."""
-        target.hp = self.damage
+        target.hp -= self.damage
         self.last_shot = now
         print(f"{self.name} ({self.gx}, {self.gy}) eltalálta az ellenséget! Sebzés: {self.damage}")
 
@@ -162,8 +162,8 @@ class Tower:
         self.range = self.base_range * (1 + 0.15 * (self.level - 1))
 
         self.fire_speed = int(self.base_fire_speed * (1 - 0.1 * (self.level - 1)))
-        print(f"{self.name} ({self.gx}, {self.gy}) fejlesztve: Level {self.level}/{self.max_level}")
-        print(f"  Sebzés: {self.damage}, Hatótáv: {self.range:.1f}, Lövési sebesség: {self.fire_speed}ms")
+        print(f"{self.name} ({self.gx}, {self.gy}) upgraded: Level {self.level}/{self.max_level}")
+        print(f"  damage: {self.damage}, range: {self.range:.1f}, shooting speed: {self.fire_speed}ms")
         return True
 
     def get_upgrade_cost(self) -> int:

@@ -24,8 +24,8 @@ class Enemy:
 
         self.speed: float = speed
         self.base_speed: float = speed  # Az alapértelmezett sebesség
-        self.max_hp: int = int(hp * 2)  # Minden ellenség most 2x HP-t kap
-        self.hp = int(hp * 2)
+        self.max_hp: int = int(hp * 4)  
+        self.hp = int(hp * 4)
         self.radius = radius
         self.color = color
         

@@ -10,7 +10,7 @@ class SlowTower(Tower):
         self.damage = 10  # Megnövelve 7-ről - DPS optimalizálás
         self.fire_speed = 800  # 0.8 másodperc
         self.range = 3.0
-        self.name = "Lassító Torony"
+        self.name = "slow Tower"
 
         self.base_damage = self.damage
         self.base_range = self.range

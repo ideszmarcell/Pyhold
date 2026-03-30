@@ -9,7 +9,7 @@ class ArcTower(Tower):
         self.damage = 16  # Megnövelve 12-ről - DPS kiegyensúlyozás
         self.fire_speed = 1000  # 1 másodperc
         self.range = 3.0
-        self.name = "Íj Torony"
+        self.name = "arc Tower"
 
         self.base_damage = self.damage
         self.base_range = self.range

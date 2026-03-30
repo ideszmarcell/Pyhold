@@ -13,7 +13,7 @@ from game.game_over import GameOverScreen
 from ui.start_screen import StartScreen
 from managers.economy_manager import EconomyManager
 from managers.wave_manager import WaveManager
-from managers.game_state import GameStateManager
+from managers.game_state import GameStateManager, GameMode
 from managers.ui_manager import UIManager
 
 
@@ -339,8 +339,13 @@ class Game:
 
         for e in self.enemies:
             if getattr(e, "reached_end", False):
-                if self.state.lose_life():
+                if isinstance(e, BossEnemy):
+                    self.state.lives = 0
+                    self.state.current_mode = GameMode.GAME_OVER
                     self.game_over_screen.active = True
+                else:
+                    if self.state.lose_life():
+                        self.game_over_screen.active = True
 
         alive_enemies: list[Enemy] = []
         for e in self.enemies:
@@ -555,11 +560,11 @@ class Game:
             self.ui.upgrade_cancel_btn.rect.y = panel_rect.top + 248
 
             if upgrade_cost > 0:
-                self.ui.upgrade_confirm_btn.draw(self.surface, "Fejlesztés", True)
+                self.ui.upgrade_confirm_btn.draw(self.surface, "Upgrade", True)
             else:
-                self.ui.upgrade_confirm_btn.draw(self.surface, "Nincs", False)
+                self.ui.upgrade_confirm_btn.draw(self.surface, "Max Level", False)
 
-            self.ui.upgrade_cancel_btn.draw(self.surface, "Vissza", True)
+            self.ui.upgrade_cancel_btn.draw(self.surface, "Back", True)
 
         if self.wave_select_active:
             self._draw_wave_select_menu()

@@ -9,7 +9,7 @@ class ShockTower(Tower):
         self.damage = 5
         self.fire_speed = 500  # 0.5 másodperc
         self.range = 2.5
-        self.name = "Sokk Torony"
+        self.name = "shock Tower"
 
         self.base_damage = self.damage
         self.base_range = self.range
